@@ -10,12 +10,10 @@ return new class extends Migration
     {
         Schema::create('email_verifications', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users');
             $table->string('code', 6);
-            $table->timestamp('last_sent_at');
+            $table->timestamp('sent_at');
             $table->timestamp('expires_at');
-            $table->timestamp('send_blocked_until');
-            $table->smallInteger('send_attempts');
+            $table->jsonb('user_data');
         });
     }
 
