@@ -4,6 +4,13 @@ use App\Http\Controllers\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/test', function () {
+    return response()->json([
+        'message' => 'Laravel API работает!',
+        'time' => now()->toDateTimeString()
+    ]);
+});
+
 Route::prefix('auth')->group(function () {
     Route::post('/send-verification', [AuthController::class, 'sendVerification']);
     Route::post('/resend-verification', [AuthController::class, 'resendVerification']);

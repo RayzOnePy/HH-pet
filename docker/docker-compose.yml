@@ -1,14 +1,15 @@
 services:
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../  # Контекст теперь корень проекта
+      dockerfile: docker/Dockerfile  # путь к Dockerfile
     container_name: hh-app
     user: "1000:1000"
     restart: unless-stopped
-    working_dir: /var/www
+    working_dir: /var/www/backend  # рабочая директория - backend
     volumes:
-      - ./:/var/www
+      - ../backend:/var/www/backend  # монтируем backend
+      - ../frontend:/var/www/frontend  # монтируем frontend
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -24,8 +25,9 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./public:/var/www/public
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ../backend/public:/var/www/backend/public  # Laravel public
+      - ../frontend/dist:/var/www/frontend/dist  # для собранного Vue (потом)
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf  # конфиг nginx
     depends_on:
       - app
     networks:
