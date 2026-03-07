@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('resume_skills', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('resume_id')->unique()->constrained()->onDelete('cascade');
+            $table->foreignId('resume_id')->constrained()->onDelete('cascade');
             $table->string('skill');
             $table->enum('level', ['beginner', 'intermediate', 'advanced'])->default('beginner');
             $table->timestamps();
