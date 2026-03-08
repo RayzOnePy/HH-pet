@@ -6,8 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/test', function () {
     return response()->json([
-        'message' => 'Laravel API работает!',
-        'time' => now()->toDateTimeString()
+        'message' => 'API работает!',
     ]);
 });
 

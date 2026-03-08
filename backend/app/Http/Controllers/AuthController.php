@@ -102,18 +102,35 @@ class AuthController extends Controller
 
     public function createUser(RegisterUserRequest $request): JsonResponse
     {
-        $verification = EmailVerification::firstWhere('code', $request->code);
+        $verification = EmailVerification::where('code', $request->code)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$verification) {
+            return response()->json([
+                'message' => 'Код подтверждения недействителен или истёк'
+            ], 400);
+        }
+
+        $userData = json_decode($verification->user_data);
 
         $user = User::create([
-            'first_name' => $verification->user_data->first_name,
-            'last_name' => $verification->user_data->last_name,
-            'middle_name' => $verification->user_data->middle_name,
+            'first_name' => $userData->first_name,
+            'last_name' => $userData->last_name,
+            'middle_name' => $userData->middle_name,
             'email' => $verification->email,
             'password' => Hash::make($request->password),
         ]);
 
-        $user->assignRole($verification->user_data->role);
+        $user->assignRole($userData->role);
 
-        return response()->json();
+        $verification->delete();
+
+        return response()->json([
+            'message' => 'Пользователь успешно создан',
+            'data' => [
+                'user' => $user
+            ]
+        ], 201);
     }
 }
