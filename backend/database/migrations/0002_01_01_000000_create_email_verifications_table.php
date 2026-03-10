@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('email_verifications', function (Blueprint $table) {
             $table->id();
             $table->string('code', 6);
+            $table->string('email', 255);
             $table->timestamp('sent_at');
             $table->timestamp('expires_at');
             $table->jsonb('user_data');
@@ -19,6 +20,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('email_verifications');
     }
 };
