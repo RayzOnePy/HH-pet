@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class EmailVerification extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
-        'user_id',
         'code',
-        'last_sent_at',
+        'email',
+        'sent_at',
         'expires_at',
-        'send_attempts',
-        'send_blocked_until'
+        'user_data'
     ];
 }

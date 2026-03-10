@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y \
     unzip \
     nodejs \
     npm \
-    libpq-dev
+    libpq-dev \
+    supervisor
 
 RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
 
@@ -22,8 +23,10 @@ RUN mkdir -p /home/www-data/.config/psysh && \
 
 ENV PSYSH_CONFIG_DIR=/tmp/psysh
 
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 WORKDIR /var/www/backend
 
 EXPOSE 9000
 
-CMD ["php-fpm"]
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
