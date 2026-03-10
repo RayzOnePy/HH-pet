@@ -15,14 +15,17 @@ class CheckEmailCodeRequest extends FormRequest
     {
         return [
             'email' => ['required', 'email', 'max:255'],
-            'code' => ['required', 'max:6'],
+            'code' => ['required', 'string', 'size:6'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'email.unique' => 'Этот email уже зарегистрирован',
+            'email.required' => 'Email обязателен для заполнения',
+            'email.email' => 'Введите корректный email адрес',
+            'code.required' => 'Код подтверждения обязателен',
+            'code.size' => 'Код должен содержать 6 символов',
         ];
     }
 }
