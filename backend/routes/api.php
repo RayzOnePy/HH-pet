@@ -21,7 +21,5 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::middleware('verified')->group(function () {
-       // ToDo
-    });
+
 });
