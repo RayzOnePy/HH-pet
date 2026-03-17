@@ -7,7 +7,11 @@
 
     <main class="main-content">
       <div class="container">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <Transition name="page" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </router-view>
       </div>
     </main>
 
@@ -64,21 +68,63 @@ body {
   font-family: var(--font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--bg-primary);
+  background-color: var(--color-black-100);
   color: var(--text-primary);
   line-height: 1.5;
+  position: relative;
+}
+
+/* Красивый фоновый градиент */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-gradient-primary);
+  pointer-events: none;
+  z-index: -2;
+}
+
+/* Второй слой градиента для глубины */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--gradient-glow);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  backdrop-filter: var(--blur-sm);
 }
 
 .main-content {
   flex: 1;
   padding: var(--spacing-2xl) 0;
-  background-color: var(--bg-secondary);
+  position: relative;
+}
+
+/* Добавляем свечение снизу для main-content */
+.main-content::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 150px;
+  background: var(--gradient-glow-bottom);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .container {
@@ -86,14 +132,29 @@ body {
   margin: 0 auto;
   padding: 0 var(--spacing-lg);
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .footer {
-  background-color: var(--bg-tertiary);
+  background: var(--bg-card-gradient);
   color: var(--text-secondary);
   padding: var(--spacing-xl) 0;
   margin-top: auto;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid rgba(0, 255, 136, 0.1);
+  position: relative;
+  backdrop-filter: var(--blur-sm);
+}
+
+.footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  opacity: 0.3;
 }
 
 .footer-content {
@@ -102,6 +163,7 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: var(--spacing-md);
+  position: relative;
 }
 
 .footer-links {
@@ -116,6 +178,24 @@ body {
   text-decoration: none;
   font-size: var(--font-size-sm);
   transition: var(--transition-base);
+  position: relative;
+}
+
+.footer-links a::after,
+.footer-links router-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--gradient-primary);
+  transition: var(--transition-base);
+}
+
+.footer-links a:hover::after,
+.footer-links router-link:hover::after {
+  width: 100%;
 }
 
 .footer-links a:hover,
@@ -123,6 +203,23 @@ body {
   color: var(--color-primary);
 }
 
+/* Анимация перехода между страницами */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* Адаптивность */
 @media (max-width: 768px) {
   .footer-content {
     flex-direction: column;
@@ -131,6 +228,10 @@ body {
 
   .footer-links {
     justify-content: center;
+  }
+
+  .main-content {
+    padding: var(--spacing-lg) 0;
   }
 }
 </style>

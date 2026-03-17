@@ -12,13 +12,18 @@
   --color-accent-blue: #3B82F6;    /* Синий для ссылок */
   --color-accent-yellow: #FBBF24;  /* Желтый для выделений */
 
-  /* Черные и серые оттенки */
-  --color-black-100: #0A0A0A;      /* Глубокий черный */
-  --color-black-200: #141414;      /* Почти черный */
-  --color-black-300: #1F1F1F;      /* Темно-серый */
-  --color-black-400: #2D2D2D;      /* Серый */
-  --color-black-500: #404040;      /* Средне-серый */
-  --color-black-600: #666666;      /* Светло-серый */
+  /* Черные и серые оттенки - БОЛЕЕ ГЛУБОКИЕ И ИНТЕРЕСНЫЕ */
+  --color-black-100: #0C0C0C;      /* Глубокий черный с легким отливом */
+  --color-black-200: #121212;      /* Почти черный */
+  --color-black-300: #1A1A1A;      /* Темно-серый */
+  --color-black-400: #222222;      /* Серый */
+  --color-black-500: #2A2A2A;      /* Средне-серый */
+  --color-black-600: #333333;      /* Светло-серый */
+
+  /* Новые оттенки для градиентов */
+  --color-dark-100: #0A0F0A;       /* Черный с зеленым подтоном */
+  --color-dark-200: #0F150F;       /* Темный с зеленым */
+  --color-dark-300: #1A231A;       /* Болотный */
 
   /* Системные цвета - обновленные */
   --color-success: #00CC6A;
@@ -33,7 +38,26 @@
   --text-light: #FFFFFF;
   --text-dark: #0A0A0A;
 
-  /* Цвета фона */
+  /* ===== НОВЫЕ ГРАДИЕНТЫ ДЛЯ ФОНОВ ===== */
+
+  /* Основные градиенты */
+  --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+
+  /* Градиенты для фонов */
+  --gradient-dark: linear-gradient(135deg, var(--color-black-200) 0%, var(--color-black-100) 100%);
+  --gradient-dark-subtle: linear-gradient(135deg, rgba(0,255,136,0.02) 0%, rgba(0,0,0,0) 100%);
+  --gradient-dark-vertical: linear-gradient(180deg, var(--color-black-100) 0%, var(--color-black-300) 100%);
+
+  /* Красивые фоновые градиенты */
+  --bg-gradient-primary: radial-gradient(circle at 0% 0%, var(--color-dark-200) 0%, var(--color-black-200) 100%);
+  --bg-gradient-secondary: radial-gradient(circle at 100% 100%, var(--color-dark-300) 0%, var(--color-black-100) 100%);
+  --bg-gradient-accent: linear-gradient(135deg, var(--color-black-200) 0%, var(--color-dark-200) 50%, var(--color-black-200) 100%);
+
+  /* Градиент с зеленым свечением */
+  --gradient-glow: radial-gradient(circle at 50% 0%, rgba(0,255,136,0.05) 0%, transparent 70%);
+  --gradient-glow-bottom: radial-gradient(circle at 50% 100%, rgba(0,255,136,0.05) 0%, transparent 70%);
+
+  /* Цвета фона - ОБНОВЛЕННЫЕ */
   --bg-primary: var(--color-black-200);
   --bg-secondary: var(--color-black-100);
   --bg-tertiary: var(--color-black-300);
@@ -41,14 +65,13 @@
   --bg-card: var(--color-black-300);
   --bg-hover: var(--color-black-400);
 
+  /* Карточки с легкой прозрачностью */
+  --bg-card-glass: rgba(26, 26, 26, 0.8);
+  --bg-card-gradient: linear-gradient(145deg, var(--color-black-300) 0%, var(--color-black-200) 100%);
+
   /* Цвета границ */
   --border-color: var(--color-black-400);
   --border-color-light: var(--color-black-500);
-
-  /* Градиенты */
-  --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  --gradient-dark: linear-gradient(135deg, var(--color-black-200) 0%, var(--color-black-100) 100%);
-  --gradient-accent: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent-purple) 100%);
 
   /* ===== ТИПОГРАФИКА ===== */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -86,8 +109,8 @@
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
 
   /* Тени с зеленым отливом */
-  --shadow-primary: 0 4px 14px rgba(0, 255, 136, 0.2);
-  --shadow-primary-lg: 0 8px 20px rgba(0, 255, 136, 0.3);
+  --shadow-primary: 0 4px 14px rgba(0, 255, 136, 0.15);
+  --shadow-primary-lg: 0 8px 25px rgba(0, 255, 136, 0.25);
 
   /* ===== LAYOUT ===== */
   --container-width: 1200px;
