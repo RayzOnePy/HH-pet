@@ -24,7 +24,7 @@
           </router-link>
         </nav>
 
-        <!-- Поиск (просто для дизайна) -->
+        <!-- Поиск -->
         <div class="search">
           <input
             type="text"
@@ -39,27 +39,28 @@
 
         <!-- Кнопки входа -->
         <div class="auth-buttons">
-          <button class="btn btn-outline">Войти</button>
-          <button class="btn btn-primary">Регистрация</button>
+          <button class="btn btn-outline" @click="$emit('open-login')">
+            Войти
+          </button>
+          <button class="btn btn-primary" @click="$emit('open-register')">
+            Регистрация
+          </button>
         </div>
       </div>
     </div>
   </header>
 </template>
 
-<script setup>
-// Пока пусто
-</script>
-
 <style scoped>
 .header {
-  background-color: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
+  background-color: var(--bg-secondary);
+  box-shadow: var(--shadow-md), var(--shadow-primary);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: var(--z-sticky);
   height: var(--header-height);
   border-bottom: 1px solid var(--border-color);
+  backdrop-filter: var(--blur-sm);
 }
 
 .header-content {
@@ -76,24 +77,29 @@
   align-items: center;
   gap: var(--spacing-xs);
   font-weight: 700;
-  transition: opacity 0.2s;
+  transition: var(--transition-base);
+  position: relative;
 }
 
 .logo:hover {
   opacity: 0.9;
+  transform: scale(1.05);
 }
 
 .logo-icon {
   font-size: 24px;
+  filter: drop-shadow(var(--shadow-primary));
 }
 
 .logo-text {
   font-size: var(--font-size-xl);
-  color: var(--color-gray-600);
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
 }
 
 .logo-accent {
   color: var(--color-primary);
+  text-shadow: 0 0 10px var(--color-primary);
 }
 
 /* Навигация */
@@ -109,16 +115,18 @@
   font-weight: 500;
   padding: var(--spacing-sm) var(--spacing-xs);
   position: relative;
-  transition: color 0.2s;
+  transition: var(--transition-base);
   white-space: nowrap;
 }
 
 .nav-link:hover {
   color: var(--color-primary);
+  text-shadow: 0 0 8px var(--color-primary);
 }
 
 .nav-link.active {
   color: var(--color-primary);
+  text-shadow: 0 0 10px var(--color-primary);
 }
 
 .nav-link.active::after {
@@ -128,8 +136,9 @@
   left: 0;
   right: 0;
   height: 2px;
-  background-color: var(--color-primary);
-  border-radius: var(--border-radius-sm);
+  background: var(--gradient-primary);
+  border-radius: var(--border-radius-full);
+  box-shadow: var(--shadow-primary);
 }
 
 /* Поиск */
@@ -144,28 +153,28 @@
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
   padding-right: 40px;
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-md);
+  border-radius: var(--border-radius-full);
   font-size: var(--font-size-sm);
-  transition: all 0.2s;
+  transition: var(--transition-base);
   color: var(--text-primary);
 }
 
 .search-input:focus {
   border-color: var(--color-primary);
   background-color: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-primary);
 }
 
 .search-input::placeholder {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   opacity: 0.7;
 }
 
 .search-input[readonly] {
   cursor: default;
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-tertiary);
 }
 
 .search-btn {
@@ -176,7 +185,8 @@
   padding: var(--spacing-xs);
   cursor: default;
   font-size: 18px;
-  opacity: 0.5;
+  opacity: 0.7;
+  color: var(--text-secondary);
 }
 
 /* Кнопки авторизации */
@@ -188,31 +198,54 @@
 
 .btn {
   padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--border-radius-md);
+  border-radius: var(--border-radius-full);
   font-weight: 500;
   font-size: var(--font-size-sm);
-  transition: all 0.2s;
-  cursor: default; /* Пока просто для дизайна */
+  transition: var(--transition-base);
+  cursor: default;
   white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn:hover::before {
+  left: 100%;
 }
 
 .btn-primary {
-  background-color: var(--color-primary);
-  color: white;
+  background: var(--gradient-primary);
+  color: var(--text-dark);
+  font-weight: 600;
+  box-shadow: var(--shadow-primary);
 }
 
 .btn-primary:hover {
-  background-color: var(--color-primary-dark);
+  box-shadow: var(--shadow-primary-lg);
+  transform: translateY(-2px);
 }
 
 .btn-outline {
   border: 1px solid var(--color-primary);
   color: var(--color-primary);
   background: transparent;
+  box-shadow: 0 0 10px transparent;
 }
 
 .btn-outline:hover {
-  background-color: var(--color-primary-light);
+  background-color: rgba(0, 255, 136, 0.1);
+  box-shadow: var(--shadow-primary);
+  transform: translateY(-2px);
 }
 
 /* Адаптивность */
