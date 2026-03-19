@@ -1,8 +1,10 @@
 <template>
   <div class="app">
     <Header
+      :user="user"
       @open-login="openLoginModal"
       @open-register="openRegisterModal"
+      @logout="handleLogout"
     />
 
     <main class="main-content">
@@ -31,28 +33,58 @@
     <!-- Модальные окна -->
     <AuthModal
       :show="showAuthModal"
+      :initial-mode="authModalMode"
       @close="closeAuthModal"
+      @login-success="handleLoginSuccess"
+      @register-success="handleRegisterSuccess"
     />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import {ref, onMounted} from 'vue'
 import Header from './components/Header.vue'
 import AuthModal from './components/AuthModal.vue'
 
 const showAuthModal = ref(false)
+const authModalMode = ref('login') // 'login' или 'register'
+const user = ref(null)
+
+onMounted(() => {
+  const token = localStorage.getItem('auth_token')
+  if (token) {
+    // TODO: загрузить данные пользователя
+    user.value = {name: 'Пользователь', first_name: 'Тестовый'}
+  }
+})
 
 const openLoginModal = () => {
+  authModalMode.value = 'login'
   showAuthModal.value = true
 }
 
 const openRegisterModal = () => {
+  authModalMode.value = 'register'
   showAuthModal.value = true
 }
 
 const closeAuthModal = () => {
   showAuthModal.value = false
+}
+
+const handleLoginSuccess = (userData) => {
+  user.value = userData.user
+  closeAuthModal()
+}
+
+const handleRegisterSuccess = (userData) => {
+  user.value = userData.user
+  closeAuthModal()
+}
+
+const handleLogout = () => {
+  localStorage.removeItem('auth_token')
+  user.value = null
 }
 </script>
 
@@ -87,7 +119,6 @@ body::before {
   z-index: -2;
 }
 
-/* Второй слой градиента для глубины */
 body::after {
   content: '';
   position: fixed;
@@ -114,7 +145,6 @@ body::after {
   position: relative;
 }
 
-/* Добавляем свечение снизу для main-content */
 .main-content::after {
   content: '';
   position: absolute;
@@ -219,7 +249,6 @@ body::after {
   transform: translateY(-20px);
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
   .footer-content {
     flex-direction: column;

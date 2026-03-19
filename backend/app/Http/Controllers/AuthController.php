@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CheckEmailCodeRequest;
+use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\RegisterUserRequest;
 use App\Http\Requests\SendVerificationRequest;
@@ -13,6 +14,7 @@ use App\Models\User;
 use App\Services\Auth\EmailVerificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -24,12 +26,6 @@ class AuthController extends Controller
     public function sendVerification(SendVerificationRequest $request): JsonResponse
     {
         try {
-            if (User::where('email', $request->email)->exists()) {
-                return response()->json([
-                    'message' => 'Пользователь с таким email уже существует',
-                ]);
-            }
-
             $existingVerification = EmailVerification::query()
                 ->where('email', $request->email)
                 ->where('expires_at', '>', now())
@@ -130,6 +126,8 @@ class AuthController extends Controller
 
             $user->assignRole($userData->role);
 
+            $token = $user->createToken('auth_token')->plainTextToken;
+
             $verification->delete();
 
             DB::commit();
@@ -146,8 +144,65 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Пользователь успешно создан',
             'data' => [
-                'user' => $user
+                'user' => $user,
+                'token' => $token
             ]
         ], 201);
+    }
+
+    public function login(LoginRequest $request): JsonResponse
+    {
+        try {
+            $credentials = $request->only('email', 'password');
+            $remember = $request->boolean('remember', false);
+
+            if (!Auth::attempt($credentials, $remember)) {
+                return response()->json([
+                    'message' => 'Неверный логин или пароль'
+                ], 401);
+            }
+
+            $user = Auth::user();
+
+            $user->tokens()->delete();
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+            $user->load('roles');
+
+            return response()->json([
+                'message' => 'Успешный вход',
+                'data' => [
+                    'user' => $user,
+                    'token' => $token
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+
+            return response()->json([
+                'message' => 'Ошибка при входе. попробуйте позже'
+            ], 500);
+        }
+    }
+
+    public function logout(): JsonResponse
+    {
+        Auth::user()->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Успешный выход из системы'
+        ]);
+    }
+
+    public function me(): JsonResponse
+    {
+        $user = Auth::user();
+        $user->load('roles');
+
+        return response()->json([
+            'data' => [
+                'user' => $user
+            ]
+        ]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +20,7 @@ class SendVerificationRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users'],
-            'role' => ['required', Rule::in(['applicant', 'employer'])],
+            'role' => ['required', Rule::in(UserRole::forRegistration())],
         ];
     }
 

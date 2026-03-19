@@ -32,13 +32,11 @@
             class="search-input"
             readonly
           >
-          <button class="search-btn">
-            🔍
-          </button>
+          <button class="search-btn">🔍</button>
         </div>
 
-        <!-- Кнопки входа -->
-        <div class="auth-buttons">
+        <!-- Кнопки входа / Профиль -->
+        <div class="auth-buttons" v-if="!user">
           <button class="btn btn-outline" @click="$emit('open-login')">
             Войти
           </button>
@@ -46,15 +44,74 @@
             Регистрация
           </button>
         </div>
+
+        <!-- Профиль пользователя -->
+        <div class="user-menu" v-else>
+          <button class="user-button" @click="showUserMenu = !showUserMenu">
+            <span class="user-avatar">👤</span>
+            <span class="user-name">{{ user.name || user.first_name || 'Пользователь' }}</span>
+            <span class="user-arrow">▼</span>
+          </button>
+
+          <Transition name="dropdown">
+            <div v-if="showUserMenu" class="user-dropdown">
+              <router-link to="/profile" class="dropdown-item" @click="showUserMenu = false">
+                <span>👤 Мой профиль</span>
+              </router-link>
+              <router-link to="/my-resumes" class="dropdown-item" @click="showUserMenu = false">
+                <span>📄 Мои резюме</span>
+              </router-link>
+              <router-link to="/my-responses" class="dropdown-item" @click="showUserMenu = false">
+                <span>✉️ Отклики</span>
+              </router-link>
+              <div class="dropdown-divider"></div>
+              <button @click="handleLogout" class="dropdown-item logout">
+                <span>🚪 Выйти</span>
+              </button>
+            </div>
+          </Transition>
+        </div>
       </div>
     </div>
   </header>
 </template>
 
+<script setup>
+import { ref } from 'vue'
+
+const props = defineProps({
+  user: {
+    type: Object,
+    default: null
+  }
+})
+
+const emit = defineEmits(['open-login', 'open-register', 'logout'])
+
+const showUserMenu = ref(false)
+
+const handleLogout = () => {
+  showUserMenu.value = false
+  emit('logout')
+}
+
+// Закрываем меню при клике вне его
+const handleClickOutside = (event) => {
+  if (!event.target.closest('.user-menu')) {
+    showUserMenu.value = false
+  }
+}
+
+// Добавляем обработчик клика вне меню
+if (typeof window !== 'undefined') {
+  window.addEventListener('click', handleClickOutside)
+}
+</script>
+
 <style scoped>
 .header {
-  background-color: var(--bg-secondary);
-  box-shadow: var(--shadow-md), var(--shadow-primary);
+  background-color: var(--bg-tertiary);
+  box-shadow: var(--shadow-md);
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
@@ -117,6 +174,7 @@
   position: relative;
   transition: var(--transition-base);
   white-space: nowrap;
+  text-decoration: none;
 }
 
 .nav-link:hover {
@@ -153,7 +211,7 @@
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
   padding-right: 40px;
-  background-color: var(--bg-tertiary);
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-full);
   font-size: var(--font-size-sm);
@@ -165,6 +223,7 @@
   border-color: var(--color-primary);
   background-color: var(--bg-primary);
   box-shadow: var(--shadow-primary);
+  outline: none;
 }
 
 .search-input::placeholder {
@@ -202,7 +261,7 @@
   font-weight: 500;
   font-size: var(--font-size-sm);
   transition: var(--transition-base);
-  cursor: default;
+  cursor: pointer;
   white-space: nowrap;
   position: relative;
   overflow: hidden;
@@ -228,6 +287,7 @@
   color: var(--text-dark);
   font-weight: 600;
   box-shadow: var(--shadow-primary);
+  border: none;
 }
 
 .btn-primary:hover {
@@ -246,6 +306,112 @@
   background-color: rgba(0, 255, 136, 0.1);
   box-shadow: var(--shadow-primary);
   transform: translateY(-2px);
+}
+
+/* Меню пользователя */
+.user-menu {
+  position: relative;
+}
+
+.user-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-full);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition-base);
+  height: 40px;
+}
+
+.user-button:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-primary);
+  background-color: var(--bg-tertiary);
+}
+
+.user-avatar {
+  font-size: 20px;
+  filter: drop-shadow(var(--shadow-primary));
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-arrow {
+  font-size: 12px;
+  transition: transform 0.3s ease;
+  color: var(--text-secondary);
+}
+
+.user-button:hover .user-arrow {
+  transform: translateY(2px);
+  color: var(--color-primary);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 200px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg), var(--shadow-primary);
+  z-index: 1000;
+  overflow: hidden;
+  backdrop-filter: var(--blur-sm);
+}
+
+.dropdown-item {
+  display: block;
+  padding: var(--spacing-md) var(--spacing-lg);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  transition: var(--transition-base);
+  text-align: left;
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background-color: var(--bg-secondary);
+  color: var(--color-primary);
+}
+
+.dropdown-item.logout:hover {
+  color: var(--color-danger);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+  margin: var(--spacing-xs) 0;
+}
+
+/* Анимация для дропдауна */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 /* Адаптивность */
@@ -270,6 +436,29 @@
 
   .search {
     display: none;
+  }
+
+  .btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .user-name {
+    max-width: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-link {
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-xs);
+  }
+
+  .user-name {
+    display: none;
+  }
+
+  .user-button {
+    padding: var(--spacing-xs);
   }
 }
 </style>
