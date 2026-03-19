@@ -8,35 +8,110 @@
           <span class="logo-text">HH<span class="logo-accent">Pet</span></span>
         </router-link>
 
-        <!-- Навигация -->
-        <nav class="nav">
-          <router-link to="/" class="nav-link" active-class="active">
+        <!-- Навигация для неавторизованных -->
+        <nav v-if="!user" class="nav">
+          <router-link to="/vacancies" class="nav-link" active-class="active">
             Вакансии
-          </router-link>
-          <router-link to="/companies" class="nav-link" active-class="active">
-            Компании
-          </router-link>
-          <router-link to="/resumes" class="nav-link" active-class="active">
-            Резюме
           </router-link>
           <router-link to="/about" class="nav-link" active-class="active">
             О проекте
           </router-link>
         </nav>
 
-        <!-- Поиск -->
+        <!-- Навигация для соискателя -->
+        <nav v-else-if="user?.role === 'applicant'" class="nav">
+          <router-link to="/applicant/dashboard" class="nav-link" active-class="active">
+            Панель
+          </router-link>
+          <router-link to="/applicant/vacancies" class="nav-link" active-class="active">
+            Вакансии
+          </router-link>
+          <router-link to="/applicant/responses" class="nav-link" active-class="active">
+            Отклики
+          </router-link>
+          <router-link to="/applicant/vacancies/favorites" class="nav-link" active-class="active">
+            Избранное
+          </router-link>
+          <router-link to="/applicant/resume" class="nav-link" active-class="active">
+            Резюме
+          </router-link>
+        </nav>
+
+        <!-- Навигация для работодателя -->
+        <nav v-else-if="user?.role === 'employer'" class="nav">
+          <router-link to="/employer/dashboard" class="nav-link" active-class="active">
+            Панель
+          </router-link>
+          <router-link to="/employer/vacancies" class="nav-link" active-class="active">
+            Мои вакансии
+          </router-link>
+          <router-link to="/employer/resumes" class="nav-link" active-class="active">
+            Резюме
+          </router-link>
+          <router-link to="/employer/responses" class="nav-link" active-class="active">
+            Отклики
+          </router-link>
+          <router-link to="/employer/company" class="nav-link" active-class="active">
+            Моя компания
+          </router-link>
+        </nav>
+
+        <!-- Поиск (для всех) -->
         <div class="search">
           <input
-            type="text"
-            placeholder="Поиск вакансий..."
-            class="search-input"
-            readonly
+              type="text"
+              placeholder="Поиск вакансий..."
+              class="search-input"
+              readonly
           >
           <button class="search-btn">🔍</button>
         </div>
 
-        <!-- Кнопки входа / Профиль -->
-        <div class="auth-buttons" v-if="!user">
+        <!-- Блок для авторизованных пользователей -->
+        <div v-if="user" class="user-actions">
+          <!-- Уведомления -->
+          <button class="icon-btn">
+            <span class="icon">🔔</span>
+            <span class="badge">3</span>
+          </button>
+
+          <!-- Чаты -->
+          <button class="icon-btn">
+            <span class="icon">✉️</span>
+            <span class="badge">2</span>
+          </button>
+
+          <!-- Профиль -->
+          <div class="user-menu">
+            <button class="user-button" @click="showUserMenu = !showUserMenu">
+              <span class="user-avatar">👤</span>
+              <span class="user-name">{{ user.first_name || 'Пользователь' }}</span>
+              <span class="user-arrow">▼</span>
+            </button>
+
+            <Transition name="dropdown">
+              <div v-if="showUserMenu" class="user-dropdown">
+                <router-link
+                    :to="user?.role === 'applicant' ? '/applicant/resume' : '/employer/company'"
+                    class="dropdown-item"
+                    @click="showUserMenu = false"
+                >
+                  <span>👤 Мой профиль</span>
+                </router-link>
+                <router-link to="/settings" class="dropdown-item" @click="showUserMenu = false">
+                  <span>⚙️ Настройки</span>
+                </router-link>
+                <div class="dropdown-divider"></div>
+                <button @click="handleLogout" class="dropdown-item logout">
+                  <span>🚪 Выйти</span>
+                </button>
+              </div>
+            </Transition>
+          </div>
+        </div>
+
+        <!-- Кнопки входа для неавторизованных -->
+        <div v-else class="auth-buttons">
           <button class="btn btn-outline" @click="$emit('open-login')">
             Войти
           </button>
@@ -44,40 +119,13 @@
             Регистрация
           </button>
         </div>
-
-        <!-- Профиль пользователя -->
-        <div class="user-menu" v-else>
-          <button class="user-button" @click="showUserMenu = !showUserMenu">
-            <span class="user-avatar">👤</span>
-            <span class="user-name">{{ user.name || user.first_name || 'Пользователь' }}</span>
-            <span class="user-arrow">▼</span>
-          </button>
-
-          <Transition name="dropdown">
-            <div v-if="showUserMenu" class="user-dropdown">
-              <router-link to="/profile" class="dropdown-item" @click="showUserMenu = false">
-                <span>👤 Мой профиль</span>
-              </router-link>
-              <router-link to="/my-resumes" class="dropdown-item" @click="showUserMenu = false">
-                <span>📄 Мои резюме</span>
-              </router-link>
-              <router-link to="/my-responses" class="dropdown-item" @click="showUserMenu = false">
-                <span>✉️ Отклики</span>
-              </router-link>
-              <div class="dropdown-divider"></div>
-              <button @click="handleLogout" class="dropdown-item logout">
-                <span>🚪 Выйти</span>
-              </button>
-            </div>
-          </Transition>
-        </div>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 
 const props = defineProps({
   user: {
@@ -95,17 +143,15 @@ const handleLogout = () => {
   emit('logout')
 }
 
-// Закрываем меню при клике вне его
+// Закрытие меню при клике вне
 const handleClickOutside = (event) => {
   if (!event.target.closest('.user-menu')) {
     showUserMenu.value = false
   }
 }
 
-// Добавляем обработчик клика вне меню
-if (typeof window !== 'undefined') {
-  window.addEventListener('click', handleClickOutside)
-}
+window.addEventListener('click', handleClickOutside)
+onUnmounted(() => window.removeEventListener('click', handleClickOutside))
 </script>
 
 <style scoped>
@@ -135,7 +181,7 @@ if (typeof window !== 'undefined') {
   gap: var(--spacing-xs);
   font-weight: 700;
   transition: var(--transition-base);
-  position: relative;
+  text-decoration: none;
 }
 
 .logo:hover {
@@ -248,64 +294,48 @@ if (typeof window !== 'undefined') {
   color: var(--text-secondary);
 }
 
-/* Кнопки авторизации */
-.auth-buttons {
+/* Блок действий пользователя */
+.user-actions {
   display: flex;
-  gap: var(--spacing-sm);
   align-items: center;
+  gap: var(--spacing-md);
 }
 
-.btn {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--border-radius-full);
-  font-weight: 500;
-  font-size: var(--font-size-sm);
-  transition: var(--transition-base);
-  cursor: pointer;
-  white-space: nowrap;
+.icon-btn {
   position: relative;
-  overflow: hidden;
-}
-
-.btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transition: left 0.5s ease;
-}
-
-.btn:hover::before {
-  left: 100%;
-}
-
-.btn-primary {
-  background: var(--gradient-primary);
-  color: var(--text-dark);
-  font-weight: 600;
-  box-shadow: var(--shadow-primary);
+  background: none;
   border: none;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  color: var(--text-secondary);
+  transition: var(--transition-base);
 }
 
-.btn-primary:hover {
-  box-shadow: var(--shadow-primary-lg);
-  transform: translateY(-2px);
-}
-
-.btn-outline {
-  border: 1px solid var(--color-primary);
+.icon-btn:hover {
   color: var(--color-primary);
-  background: transparent;
-  box-shadow: 0 0 10px transparent;
+  transform: translateY(-2px);
 }
 
-.btn-outline:hover {
-  background-color: rgba(0, 255, 136, 0.1);
-  box-shadow: var(--shadow-primary);
-  transform: translateY(-2px);
+.icon {
+  font-size: 20px;
+}
+
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--color-danger);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid var(--bg-tertiary);
 }
 
 /* Меню пользователя */
@@ -402,6 +432,48 @@ if (typeof window !== 'undefined') {
   margin: var(--spacing-xs) 0;
 }
 
+/* Кнопки авторизации */
+.auth-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-full);
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  transition: var(--transition-base);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--gradient-primary);
+  color: var(--text-dark);
+  font-weight: 600;
+  box-shadow: var(--shadow-primary);
+  border: none;
+}
+
+.btn-primary:hover {
+  box-shadow: var(--shadow-primary-lg);
+  transform: translateY(-2px);
+}
+
+.btn-outline {
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  background: transparent;
+}
+
+.btn-outline:hover {
+  background-color: rgba(0, 255, 136, 0.1);
+  box-shadow: var(--shadow-primary);
+  transform: translateY(-2px);
+}
+
 /* Анимация для дропдауна */
 .dropdown-enter-active,
 .dropdown-leave-active {
@@ -418,6 +490,10 @@ if (typeof window !== 'undefined') {
 @media (max-width: 1024px) {
   .search {
     min-width: 200px;
+  }
+
+  .user-name {
+    max-width: 80px;
   }
 }
 
@@ -443,7 +519,12 @@ if (typeof window !== 'undefined') {
   }
 
   .user-name {
-    max-width: 80px;
+    display: none;
+  }
+
+  .icon-btn .badge {
+    top: -8px;
+    right: -8px;
   }
 }
 
@@ -453,12 +534,12 @@ if (typeof window !== 'undefined') {
     padding: var(--spacing-xs);
   }
 
-  .user-name {
-    display: none;
-  }
-
   .user-button {
     padding: var(--spacing-xs);
+  }
+
+  .user-actions {
+    gap: var(--spacing-xs);
   }
 }
 </style>

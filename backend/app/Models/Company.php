@@ -14,17 +14,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $logo_url
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereDescription($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereLogoUrl($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereName($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereSlug($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Company whereUpdatedAt($value)
- * @mixin \Eloquent
  */
 class Company extends Model
 {
@@ -33,6 +22,7 @@ class Company extends Model
         'slug',
         'description',
         'logo_url',
+        'is_verified',
     ];
 
     public function users(): BelongsToMany

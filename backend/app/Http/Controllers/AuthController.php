@@ -142,7 +142,19 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Пользователь успешно создан',
                 'data' => [
-                    'user' => $user,
+                    'user' => [
+                        'id' => $user->id,
+                        'first_name' => $user->first_name,
+                        'last_name' => $user->last_name,
+                        'middle_name' => $user->middle_name,
+                        'avatar_url' => $user->avatar_url,
+                        'email' => $user->email,
+                        'birthday' => $user->birthday,
+                        'gender' => $user->gender,
+                        'created_at' => $user->created_at,
+                        'updated_at' => $user->updated_at,
+                        'role' => $user->roles->first()?->name,
+                    ],
                     'token' => $token
                 ]
             ], 201);
@@ -183,7 +195,19 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Успешный вход',
                 'data' => [
-                    'user' => $user,
+                    'user' => [
+                        'id' => $user->id,
+                        'first_name' => $user->first_name,
+                        'last_name' => $user->last_name,
+                        'middle_name' => $user->middle_name,
+                        'avatar_url' => $user->avatar_url,
+                        'email' => $user->email,
+                        'birthday' => $user->birthday,
+                        'gender' => $user->gender,
+                        'created_at' => $user->created_at,
+                        'updated_at' => $user->updated_at,
+                        'role' => $user->roles->first()?->name,
+                    ],
                     'token' => $token
                 ]
             ]);
@@ -212,7 +236,19 @@ class AuthController extends Controller
 
         return response()->json([
             'data' => [
-                'user' => $user
+                'user' => [
+                    'id' => $user->id,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'middle_name' => $user->middle_name,
+                    'avatar_url' => $user->avatar_url,
+                    'email' => $user->email,
+                    'birthday' => $user->birthday,
+                    'gender' => $user->gender,
+                    'created_at' => $user->created_at,
+                    'updated_at' => $user->updated_at,
+                    'role' => $user->roles->first()?->name,
+                ],
             ]
         ]);
     }

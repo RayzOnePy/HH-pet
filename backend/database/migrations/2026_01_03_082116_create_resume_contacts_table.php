@@ -8,9 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('user_contacts', function (Blueprint $table) {
+        Schema::create('resume_contacts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('resume_id')->constrained('resumes')->onDelete('cascade');
             $table->enum('type', ['phone', 'email', 'telegram', 'whatsapp']);
             $table->string('value')->nullable(false);
             $table->timestamps();
@@ -21,6 +21,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('user_contacts');
+        Schema::dropIfExists('resume_contacts');
     }
 };

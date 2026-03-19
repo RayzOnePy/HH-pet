@@ -120,7 +120,6 @@
 
     <!-- ШАГ 3: Подтверждение email (для регистрации) -->
     <div v-else-if="!isLogin && step === 3" class="auth-form">
-      <h3 class="step-title">Подтверждение email</h3>
       <p class="step-description">
         Мы отправили код на <strong>{{ formData.email }}</strong>
       </p>
