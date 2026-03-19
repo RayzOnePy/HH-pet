@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('slug')->nullable(false);
             $table->text('description')->nullable(false);
             $table->string('logo_url')->nullable(false);
+            $table->boolean('is_verified')->default(false);
             $table->timestamps();
         });
     }
