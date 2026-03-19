@@ -6,8 +6,8 @@
       <div class="role-cards">
         <div
           class="role-card"
-          :class="{ active: selectedRole === 'employee' }"
-          @click="selectedRole = 'employee'"
+          :class="{ active: selectedRole === 'employee', error: errors.role }"
+          @click="selectedRole = 'employee'; errors.role = null"
         >
           <div class="role-icon">👨‍💻</div>
           <h4>Ищу работу</h4>
@@ -15,13 +15,16 @@
         </div>
         <div
           class="role-card"
-          :class="{ active: selectedRole === 'employer' }"
-          @click="selectedRole = 'employer'"
+          :class="{ active: selectedRole === 'employer', error: errors.role }"
+          @click="selectedRole = 'employer'; errors.role = null"
         >
           <div class="role-icon">🏢</div>
           <h4>Работодатель</h4>
           <p>Ищу сотрудников в компанию</p>
         </div>
+      </div>
+      <div v-if="errors.role" class="error-message-field">
+        {{ errors.role }}
       </div>
       <button
         class="submit-btn"
@@ -34,52 +37,72 @@
 
     <!-- ШАГ 2: Ввод личных данных (для регистрации) -->
     <div v-else-if="!isLogin && step === 2" class="auth-form">
-      <h3 class="step-title">Личные данные</h3>
-
       <div class="form-group">
-        <label>Фамилия</label>
+        <label>Фамилия <span class="required">*</span></label>
         <input
           v-model="formData.last_name"
           type="text"
           placeholder="Иванов"
           class="form-input"
           :class="{ error: errors.last_name }"
+          @input="errors.last_name = null"
         >
-        <span v-if="errors.last_name" class="error-text">{{ errors.last_name }}</span>
+        <Transition name="fade-slide">
+          <div v-if="errors.last_name" class="error-message-field">
+            {{ errors.last_name }}
+          </div>
+        </Transition>
       </div>
 
       <div class="form-group">
-        <label>Имя</label>
+        <label>Имя <span class="required">*</span></label>
         <input
           v-model="formData.first_name"
           type="text"
           placeholder="Иван"
           class="form-input"
           :class="{ error: errors.first_name }"
+          @input="errors.first_name = null"
         >
-        <span v-if="errors.first_name" class="error-text">{{ errors.first_name }}</span>
+        <Transition name="fade-slide">
+          <div v-if="errors.first_name" class="error-message-field">
+            {{ errors.first_name }}
+          </div>
+        </Transition>
       </div>
 
       <div class="form-group">
-        <label>Отчество (необязательно)</label>
+        <label>Отчество</label>
         <input
           v-model="formData.middle_name"
           type="text"
           placeholder="Иванович"
           class="form-input"
+          :class="{ error: errors.middle_name }"
+          @input="errors.middle_name = null"
         >
+        <Transition name="fade-slide">
+          <div v-if="errors.middle_name" class="error-message-field">
+            {{ errors.middle_name }}
+          </div>
+        </Transition>
       </div>
 
       <div class="form-group">
-        <label>Email</label>
+        <label>Email <span class="required">*</span></label>
         <input
           v-model="formData.email"
           type="email"
           placeholder="hello@example.com"
           class="form-input"
           :class="{ error: errors.email }"
+          @input="errors.email = null"
         >
-        <span v-if="errors.email" class="error-text">{{ errors.email }}</span>
+        <Transition name="fade-slide">
+          <div v-if="errors.email" class="error-message-field">
+            {{ errors.email }}
+          </div>
+        </Transition>
       </div>
 
       <div class="form-actions">
@@ -99,28 +122,47 @@
     <div v-else-if="!isLogin && step === 3" class="auth-form">
       <h3 class="step-title">Подтверждение email</h3>
       <p class="step-description">
-        Мы отправили код на {{ formData.email }}
+        Мы отправили код на <strong>{{ formData.email }}</strong>
       </p>
 
-      <div class="verification-inputs">
-        <input
-          v-for="(digit, index) in 6"
-          :key="index"
-          ref="codeInputs"
-          v-model="verificationCode[index]"
-          type="text"
-          maxlength="1"
-          class="verification-digit"
-          @input="handleCodeInput(index, $event)"
-          @keydown.delete="handleCodeDelete(index, $event)"
-          @paste="handleCodePaste"
-        >
+      <div class="form-group">
+        <label>Введите код из письма</label>
+        <div class="verification-inputs">
+          <input
+            v-for="(digit, index) in 6"
+            :key="index"
+            ref="codeInputs"
+            v-model="verificationCode[index]"
+            type="text"
+            maxlength="1"
+            class="verification-digit"
+            :class="{ error: errors.code }"
+            @input="handleCodeInput(index, $event); errors.code = null"
+            @keydown.delete="handleCodeDelete(index, $event)"
+            @paste="handleCodePaste"
+          >
+        </div>
+        <Transition name="fade-slide">
+          <div v-if="errors.code" class="error-message-field">
+            {{ errors.code }}
+          </div>
+        </Transition>
       </div>
-      <span v-if="errors.code" class="error-text">{{ errors.code }}</span>
 
       <div class="timer">
-        <span v-if="timer > 0">Получить новый код через {{ timer }} сек</span>
-        <button v-else class="resend-btn" @click="resendCode">Отправить снова</button>
+        <template v-if="timer > 0">
+          <span class="timer-icon">⏳</span>
+          <span>Повторная отправка через {{ timer }} сек</span>
+        </template>
+        <button
+          v-else
+          class="resend-btn"
+          @click="resendCode"
+          :disabled="loading"
+        >
+          <span class="resend-icon">↻</span>
+          Отправить снова
+        </button>
       </div>
 
       <div class="form-actions">
@@ -141,27 +183,31 @@
       <h3 class="step-title">Придумайте пароль</h3>
 
       <div class="form-group">
-        <label>Пароль</label>
-        <input
-          v-model="formData.password"
-          type="password"
-          placeholder="••••••••"
-          class="form-input"
-          :class="{ error: errors.password }"
-        >
-        <span v-if="errors.password" class="error-text">{{ errors.password }}</span>
-      </div>
-
-      <div class="form-group">
-        <label>Подтверждение пароля</label>
-        <input
-          v-model="formData.password_confirmation"
-          type="password"
-          placeholder="••••••••"
-          class="form-input"
-          :class="{ error: errors.password_confirmation }"
-        >
-        <span v-if="errors.password_confirmation" class="error-text">{{ errors.password_confirmation }}</span>
+        <label>Пароль <span class="required">*</span></label>
+        <div class="password-wrapper">
+          <input
+            v-model="formData.password"
+            :type="showPassword ? 'text' : 'password'"
+            placeholder="••••••••"
+            class="form-input password-input"
+            :class="{ error: errors.password }"
+            @input="errors.password = null; errors.password_confirmation = null"
+          >
+          <button
+            type="button"
+            class="password-toggle"
+            @click="showPassword = !showPassword"
+            tabindex="-1"
+          >
+            <span v-if="showPassword">👁️</span>
+            <span v-else>👁️‍🗨️</span>
+          </button>
+        </div>
+        <Transition name="fade-slide">
+          <div v-if="errors.password" class="error-message-field">
+            {{ errors.password }}
+          </div>
+        </Transition>
       </div>
 
       <div class="password-strength" v-if="formData.password">
@@ -169,6 +215,34 @@
           <div :class="['strength-fill', strengthClass]" :style="{ width: strengthPercentage + '%' }"></div>
         </div>
         <span class="strength-text">{{ strengthText }}</span>
+      </div>
+
+      <div class="form-group">
+        <label>Подтверждение пароля <span class="required">*</span></label>
+        <div class="password-wrapper">
+          <input
+            v-model="formData.password_confirmation"
+            :type="showPasswordConfirm ? 'text' : 'password'"
+            placeholder="••••••••"
+            class="form-input password-input"
+            :class="{ error: errors.password_confirmation }"
+            @input="errors.password_confirmation = null"
+          >
+          <button
+            type="button"
+            class="password-toggle"
+            @click="showPasswordConfirm = !showPasswordConfirm"
+            tabindex="-1"
+          >
+            <span v-if="showPasswordConfirm">👁️</span>
+            <span v-else>👁️‍🗨️</span>
+          </button>
+        </div>
+        <Transition name="fade-slide">
+          <div v-if="errors.password_confirmation" class="error-message-field">
+            {{ errors.password_confirmation }}
+          </div>
+        </Transition>
       </div>
 
       <div class="form-actions">
@@ -186,30 +260,49 @@
 
     <!-- ФОРМА ВХОДА -->
     <form v-if="isLogin" @submit.prevent="handleLogin" class="auth-form">
-      <h3 class="step-title">Вход в аккаунт</h3>
-
       <div class="form-group">
-        <label>Email</label>
+        <label>Email <span class="required">*</span></label>
         <input
           v-model="loginForm.email"
           type="email"
           placeholder="hello@example.com"
           class="form-input"
           :class="{ error: errors.email }"
+          @input="errors.email = null"
         >
-        <span v-if="errors.email" class="error-text">{{ errors.email }}</span>
+        <Transition name="fade-slide">
+          <div v-if="errors.email" class="error-message-field">
+            {{ errors.email }}
+          </div>
+        </Transition>
       </div>
 
       <div class="form-group">
-        <label>Пароль</label>
-        <input
-          v-model="loginForm.password"
-          type="password"
-          placeholder="••••••••"
-          class="form-input"
-          :class="{ error: errors.password }"
-        >
-        <span v-if="errors.password" class="error-text">{{ errors.password }}</span>
+        <label>Пароль <span class="required">*</span></label>
+        <div class="password-wrapper">
+          <input
+            v-model="loginForm.password"
+            :type="showLoginPassword ? 'text' : 'password'"
+            placeholder="••••••••"
+            class="form-input password-input"
+            :class="{ error: errors.password }"
+            @input="errors.password = null"
+          >
+          <button
+            type="button"
+            class="password-toggle"
+            @click="showLoginPassword = !showLoginPassword"
+            tabindex="-1"
+          >
+            <span v-if="showLoginPassword">👁️</span>
+            <span v-else>👁️‍🗨️</span>
+          </button>
+        </div>
+        <Transition name="fade-slide">
+          <div v-if="errors.password" class="error-message-field">
+            {{ errors.password }}
+          </div>
+        </Transition>
       </div>
 
       <div class="form-options">
@@ -236,17 +329,18 @@
       </p>
     </div>
 
-    <!-- Сообщение об ошибке -->
-    <Transition name="fade">
-      <div v-if="errorMessage" class="error-message">
-        {{ errorMessage }}
+    <!-- Общая ошибка (например, сервер не отвечает) -->
+    <Transition name="fade-slide">
+      <div v-if="generalError" class="error-message-general">
+        {{ generalError }}
       </div>
     </Transition>
   </Modal>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import {ref, computed, watch, nextTick} from 'vue'
+import {useAuthStore} from '../stores/auth'
 import Modal from './Modal.vue'
 import api from '../services/api'
 
@@ -260,12 +354,20 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'login-success', 'register-success'])
 
+// Подключаем store
+const authStore = useAuthStore()
+
 // Общие состояния
 const isLogin = ref(props.initialMode === 'login')
 const loading = ref(false)
 const loginLoading = ref(false)
-const errorMessage = ref('')
+const generalError = ref('')
 const errors = ref({})
+
+// Состояния для показа паролей
+const showPassword = ref(false)
+const showPasswordConfirm = ref(false)
+const showLoginPassword = ref(false)
 
 // Данные для регистрации
 const step = ref(1)
@@ -296,11 +398,16 @@ let timerInterval = null
 const modalTitle = computed(() => {
   if (isLogin.value) return 'Вход'
   switch (step.value) {
-    case 1: return 'Регистрация'
-    case 2: return 'Личные данные'
-    case 3: return 'Подтверждение email'
-    case 4: return 'Создание пароля'
-    default: return 'Регистрация'
+    case 1:
+      return 'Регистрация'
+    case 2:
+      return 'Личные данные'
+    case 3:
+      return 'Подтверждение email'
+    case 4:
+      return 'Создание пароля'
+    default:
+      return 'Регистрация'
   }
 })
 
@@ -345,7 +452,7 @@ const strengthText = computed(() => {
   return 'Надёжный'
 })
 
-// Методы - ОБЪЯВЛЯЕМ ПЕРЕД ИХ ИСПОЛЬЗОВАНИЕМ
+// Методы
 const clearTimer = () => {
   clearInterval(timerInterval)
   timer.value = 0
@@ -355,14 +462,19 @@ const resetForm = () => {
   step.value = 1
   selectedRole.value = null
   formData.value = {
-    first_name: '', last_name: '', middle_name: '', email: '', password: '', password_confirmation: ''
+    first_name: '',
+    last_name: '',
+    middle_name: '',
+    email: '',
+    password: '',
+    password_confirmation: ''
   }
   loginForm.value = {
     email: '', password: '', remember: false
   }
   verificationCode.value = ['', '', '', '', '', '']
   errors.value = {}
-  errorMessage.value = ''
+  generalError.value = ''
   clearTimer()
 }
 
@@ -379,12 +491,12 @@ const handleClose = () => {
 // Отправка кода подтверждения
 const sendVerificationCode = async () => {
   errors.value = {}
+  generalError.value = ''
   loading.value = true
-  errorMessage.value = ''
 
   // Базовая валидация на фронте
   if (!formData.value.first_name || !formData.value.last_name || !formData.value.email) {
-    errorMessage.value = 'Заполните все обязательные поля'
+    generalError.value = 'Заполните все обязательные поля'
     loading.value = false
     return
   }
@@ -398,32 +510,31 @@ const sendVerificationCode = async () => {
       role: selectedRole.value === 'employee' ? 'applicant' : 'employer'
     }
 
-    console.log('Sending data:', requestData)
-
     const response = await api.post('/auth/send-verification', requestData)
 
-    console.log('Response:', response)
+    // Успешная отправка - переходим на шаг 3 и запускаем таймер на 60 секунд
     step.value = 3
-    startTimer(30)
+    startTimer(60)
 
   } catch (error) {
-    console.error('Full error:', error)
-    console.error('Error response:', error.response?.data)
-
-    if (error.response?.data?.errors) {
+    if (error.errors) {
       // Ошибки валидации от Laravel
-      errors.value = error.response.data.errors
+      const formattedErrors = {}
+      Object.keys(error.errors).forEach(field => {
+        formattedErrors[field] = error.errors[field][0]
+      })
+      errors.value = formattedErrors
 
-      // Покажем первую ошибку
-      const firstErrorField = Object.keys(error.response.data.errors)[0]
-      if (firstErrorField) {
-        errorMessage.value = error.response.data.errors[firstErrorField][0]
-      }
-    } else if (error.response?.data?.message) {
-      // Общее сообщение об ошибке
-      errorMessage.value = error.response.data.message
+    } else if (error.data?.seconds) {
+      // Бэкенд вернул 429 с количеством секунд ожидания
+      generalError.value = error.message || `Повторная отправка через ${error.data.seconds} секунд`
+      startTimer(error.data.seconds)
+
+    } else if (error.message) {
+      // Другие ошибки с сообщением
+      generalError.value = error.message
     } else {
-      errorMessage.value = 'Ошибка при отправке кода'
+      generalError.value = 'Ошибка при отправке кода'
     }
   } finally {
     loading.value = false
@@ -433,6 +544,7 @@ const sendVerificationCode = async () => {
 // Проверка кода
 const verifyCode = async () => {
   errors.value = {}
+  generalError.value = ''
   loading.value = true
 
   try {
@@ -447,9 +559,15 @@ const verifyCode = async () => {
 
   } catch (error) {
     if (error.errors) {
-      errors.value = error.errors
+      const formattedErrors = {}
+      Object.keys(error.errors).forEach(field => {
+        formattedErrors[field] = error.errors[field][0]
+      })
+      errors.value = formattedErrors
+    } else if (error.message) {
+      generalError.value = error.message
     } else {
-      errorMessage.value = error.message || 'Неверный код подтверждения'
+      generalError.value = 'Неверный код подтверждения'
     }
   } finally {
     loading.value = false
@@ -459,30 +577,27 @@ const verifyCode = async () => {
 // Создание пользователя
 const createUser = async () => {
   errors.value = {}
+  generalError.value = ''
   loading.value = true
 
   try {
     const code = verificationCode.value.join('')
 
-    const response = await api.post('/auth/create-user', {
+    const result = await authStore.register({
       email: formData.value.email,
       password: formData.value.password,
       password_confirmation: formData.value.password_confirmation,
       code: code
     })
 
-    // Автоматический вход после регистрации
-    await handleLogin(true)
-
-    emit('register-success', response.data)
-    handleClose()
-
-  } catch (error) {
-    if (error.errors) {
-      errors.value = error.errors
+    if (result.success) {
+      emit('register-success', result.data)
+      handleClose()
     } else {
-      errorMessage.value = error.message || 'Ошибка при создании пользователя'
+      generalError.value = result.message
     }
+  } catch (error) {
+    generalError.value = 'Ошибка при создании пользователя'
   } finally {
     loading.value = false
   }
@@ -491,27 +606,24 @@ const createUser = async () => {
 // Вход в систему
 const handleLogin = async (skipRedirect = false) => {
   errors.value = {}
+  generalError.value = ''
   loginLoading.value = true
 
   try {
-    const response = await api.post('/auth/login', {
+    const result = await authStore.login({
       email: loginForm.value.email,
-      password: loginForm.value.password
+      password: loginForm.value.password,
+      remember: loginForm.value.remember
     })
 
-    if (response.data.token) {
-      localStorage.setItem('auth_token', response.data.token)
-    }
-
-    emit('login-success', response.data)
-    if (!skipRedirect) handleClose()
-
-  } catch (error) {
-    if (error.errors) {
-      errors.value = error.errors
+    if (result.success) {
+      emit('login-success', result.data)
+      if (!skipRedirect) handleClose()
     } else {
-      errorMessage.value = error.message || 'Неверный email или пароль'
+      generalError.value = result.message
     }
+  } catch (error) {
+    generalError.value = 'Ошибка при входе'
   } finally {
     loginLoading.value = false
   }
@@ -519,6 +631,10 @@ const handleLogin = async (skipRedirect = false) => {
 
 // Повторная отправка кода
 const resendCode = async () => {
+  if (timer.value > 0) {
+    generalError.value = `Подождите ${timer.value} секунд перед повторной отправкой`
+    return
+  }
   await sendVerificationCode()
 }
 
@@ -559,11 +675,11 @@ const handleCodePaste = (event) => {
   }
 }
 
-// WATCH - ТЕПЕРЬ ПОСЛЕ ОБЪЯВЛЕНИЯ ВСЕХ ФУНКЦИЙ
+// WATCH
 watch(() => props.initialMode, (newMode) => {
   isLogin.value = newMode === 'login'
   resetForm()
-}, { immediate: true })
+}, {immediate: true})
 
 // Сброс при закрытии
 watch(() => props.show, (newVal) => {
@@ -604,6 +720,10 @@ watch(step, (newStep) => {
   margin-bottom: var(--spacing-xl);
 }
 
+.step-description strong {
+  color: var(--color-primary);
+}
+
 /* Карточки выбора роли */
 .role-selection {
   display: flex;
@@ -619,12 +739,30 @@ watch(step, (newStep) => {
 
 .role-card {
   background: var(--bg-card-gradient);
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-lg);
   text-align: center;
   cursor: pointer;
-  transition: var(--transition-base);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.role-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-primary);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.role-card:hover::before {
+  transform: translateX(0);
 }
 
 .role-card:hover {
@@ -637,6 +775,15 @@ watch(step, (newStep) => {
   border-color: var(--color-primary);
   background: linear-gradient(145deg, var(--color-black-300) 0%, var(--color-dark-200) 100%);
   box-shadow: var(--shadow-primary);
+}
+
+.role-card.active::before {
+  transform: translateX(0);
+}
+
+.role-card.error {
+  border-color: var(--color-danger);
+  animation: shake 0.3s ease;
 }
 
 .role-icon {
@@ -667,28 +814,38 @@ watch(step, (newStep) => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
+  position: relative;
 }
 
 .form-group label {
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.required {
+  color: var(--color-danger);
+  font-size: var(--font-size-md);
 }
 
 .form-input {
   padding: var(--spacing-md);
   background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: var(--border-radius-md);
   color: var(--text-primary);
   font-size: var(--font-size-sm);
-  transition: var(--transition-base);
+  transition: all var(--transition-base);
 }
 
 .form-input:focus {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-primary);
   outline: none;
+  background-color: var(--bg-tertiary);
 }
 
 .form-input::placeholder {
@@ -697,12 +854,49 @@ watch(step, (newStep) => {
 
 .form-input.error {
   border-color: var(--color-danger);
+  background-color: rgba(244, 67, 54, 0.05);
 }
 
-.error-text {
-  color: var(--color-danger);
-  font-size: var(--font-size-xs);
-  margin-top: 2px;
+.form-input.error:focus {
+  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
+}
+
+/* Password toggle */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input {
+  width: 100%;
+  padding-right: 50px !important;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--text-secondary);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-base);
+  z-index: 2;
+}
+
+.password-toggle:hover {
+  color: var(--color-primary);
+}
+
+.password-toggle:focus {
+  outline: none;
+  color: var(--color-primary);
 }
 
 /* Поля ввода кода */
@@ -710,25 +904,31 @@ watch(step, (newStep) => {
   display: flex;
   gap: var(--spacing-xs);
   justify-content: center;
-  margin-bottom: var(--spacing-lg);
+  margin-top: var(--spacing-xs);
 }
 
 .verification-digit {
   width: 50px;
   height: 50px;
   background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: var(--border-radius-md);
   color: var(--text-primary);
   font-size: var(--font-size-xl);
   text-align: center;
-  transition: var(--transition-base);
+  transition: all var(--transition-base);
 }
 
 .verification-digit:focus {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-primary);
   outline: none;
+  transform: scale(1.05);
+}
+
+.verification-digit.error {
+  border-color: var(--color-danger);
+  animation: shake 0.3s ease;
 }
 
 /* Таймер */
@@ -737,6 +937,15 @@ watch(step, (newStep) => {
   margin-bottom: var(--spacing-lg);
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+.timer-icon {
+  font-size: var(--font-size-md);
+  animation: pulse 1s infinite;
 }
 
 .resend-btn {
@@ -745,13 +954,54 @@ watch(step, (newStep) => {
   color: var(--color-primary);
   cursor: pointer;
   font-size: var(--font-size-sm);
-  text-decoration: underline;
   transition: var(--transition-base);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
 }
 
-.resend-btn:hover {
+.resend-btn:hover:not(:disabled) {
   filter: brightness(1.2);
   text-shadow: 0 0 8px var(--color-primary);
+  background-color: rgba(0, 255, 136, 0.1);
+}
+
+.resend-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.resend-icon {
+  font-size: var(--font-size-md);
+  transition: transform 0.3s ease;
+}
+
+.resend-btn:hover:not(:disabled) .resend-icon {
+  transform: rotate(180deg);
+}
+
+/* Сообщения об ошибках */
+.error-message-field {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  margin-top: 2px;
+  padding-left: var(--spacing-xs);
+  animation: slideIn 0.2s ease;
+}
+
+.error-message-general {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(244, 67, 54, 0.05));
+  border: 1px solid var(--color-danger);
+  border-radius: var(--border-radius-md);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  backdrop-filter: var(--blur-sm);
+  animation: slideIn 0.3s ease;
 }
 
 /* Кнопки */
@@ -765,7 +1015,7 @@ watch(step, (newStep) => {
   flex: 1;
   padding: var(--spacing-md);
   background: transparent;
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: var(--border-radius-md);
   color: var(--text-secondary);
   font-weight: 500;
@@ -777,6 +1027,7 @@ watch(step, (newStep) => {
   border-color: var(--color-primary);
   color: var(--color-primary);
   background-color: rgba(0, 255, 136, 0.05);
+  transform: translateY(-1px);
 }
 
 .form-actions .submit-btn {
@@ -843,6 +1094,7 @@ watch(step, (newStep) => {
   width: 16px;
   height: 16px;
   accent-color: var(--color-primary);
+  cursor: pointer;
 }
 
 .forgot-link {
@@ -850,11 +1102,14 @@ watch(step, (newStep) => {
   text-decoration: none;
   font-size: var(--font-size-sm);
   transition: var(--transition-base);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
 }
 
 .forgot-link:hover {
   text-decoration: underline;
   filter: brightness(1.2);
+  background-color: rgba(0, 255, 136, 0.1);
 }
 
 /* Индикатор сложности пароля */
@@ -876,10 +1131,21 @@ watch(step, (newStep) => {
   transition: width 0.3s ease;
 }
 
-.strength-fill.weak { background-color: var(--color-danger); }
-.strength-fill.fair { background-color: var(--color-warning); }
-.strength-fill.good { background-color: var(--color-primary-soft); }
-.strength-fill.strong { background-color: var(--color-primary); }
+.strength-fill.weak {
+  background-color: var(--color-danger);
+}
+
+.strength-fill.fair {
+  background-color: var(--color-warning);
+}
+
+.strength-fill.good {
+  background-color: var(--color-primary-soft);
+}
+
+.strength-fill.strong {
+  background-color: var(--color-primary);
+}
 
 .strength-text {
   font-size: var(--font-size-xs);
@@ -908,36 +1174,57 @@ watch(step, (newStep) => {
   font-size: var(--font-size-sm);
   transition: var(--transition-base);
   margin-left: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
 }
 
 .switch-btn:hover {
   text-decoration: underline;
   filter: brightness(1.2);
-}
-
-/* Сообщение об ошибке */
-.error-message {
-  margin-top: var(--spacing-lg);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background-color: rgba(244, 67, 54, 0.1);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--border-radius-md);
-  color: var(--color-danger);
-  font-size: var(--font-size-sm);
-  text-align: center;
+  background-color: rgba(0, 255, 136, 0.1);
 }
 
 /* Анимации */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
 }
 
-.fade-enter-from,
-.fade-leave-to {
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.2s ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
   opacity: 0;
+  transform: translateY(-10px);
 }
 
+/* Адаптивность */
 @media (max-width: 480px) {
   .role-cards {
     grid-template-columns: 1fr;

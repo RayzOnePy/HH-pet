@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="show" class="modal-overlay" @click.self="$emit('close')">
+      <div v-if="show" class="modal-overlay">
         <div class="modal-container" :style="{ maxWidth: width }">
           <div class="modal-header">
             <slot name="header">

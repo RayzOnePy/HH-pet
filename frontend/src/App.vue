@@ -42,20 +42,20 @@
 </template>
 
 <script setup>
-import {ref, onMounted} from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useAuthStore } from './stores/auth'
 import Header from './components/Header.vue'
 import AuthModal from './components/AuthModal.vue'
 
+const authStore = useAuthStore()
 const showAuthModal = ref(false)
-const authModalMode = ref('login') // 'login' или 'register'
-const user = ref(null)
+const authModalMode = ref('login')
+
+// Используем данные из store
+const user = computed(() => authStore.user)
 
 onMounted(() => {
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    // TODO: загрузить данные пользователя
-    user.value = {name: 'Пользователь', first_name: 'Тестовый'}
-  }
+  authStore.init()
 })
 
 const openLoginModal = () => {
@@ -73,18 +73,17 @@ const closeAuthModal = () => {
 }
 
 const handleLoginSuccess = (userData) => {
-  user.value = userData.user
+  // Данные уже в store, просто закрываем модалку
   closeAuthModal()
 }
 
 const handleRegisterSuccess = (userData) => {
-  user.value = userData.user
+  // Данные уже в store, просто закрываем модалку
   closeAuthModal()
 }
 
-const handleLogout = () => {
-  localStorage.removeItem('auth_token')
-  user.value = null
+const handleLogout = async () => {
+  await authStore.logout()
 }
 </script>
 
