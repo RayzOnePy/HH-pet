@@ -3,56 +3,54 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CheckEmailCodeRequest;
-use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterUserRequest;
 use App\Http\Requests\SendVerificationRequest;
 use App\Jobs\SendVerificationEmailJob;
-use App\Mail\RegistrationMail;
 use App\Models\EmailVerification;
 use App\Models\User;
-use App\Services\Auth\EmailVerificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Redis;
 
 class AuthController extends Controller
 {
     public function sendVerification(SendVerificationRequest $request): JsonResponse
     {
         try {
-            if (User::where('email', $request->email)->exists()) {
-                return response()->json([
-                    'message' => 'Пользователь с таким email уже существует',
-                ]);
-            }
+            $email = strtolower($request->email);
 
             $existingVerification = EmailVerification::query()
-                ->where('email', $request->email)
-                ->where('expires_at', '>', now())
+                ->where('email', $email)
+                ->orderBy('sent_at', 'desc')
                 ->first();
 
             if ($existingVerification) {
-                return response()->json([
-                    'message' => 'Код подтверждения уже был отправлен на почту',
-                ], 429);
-            }
+                $secondsSinceLastSend = $existingVerification->sent_at->diffInSeconds(now());
 
-            EmailVerification::query()
-                ->where('email', $request->email)
-                ->where('expires_at', '>', now())
-                ->update(['expires_at' => now()]);
+                if ($secondsSinceLastSend < 60) {
+                    $waitSeconds = round(60 - $secondsSinceLastSend);
+                    return response()->json([
+                        'message' => "Повторная отправка кода возможна через {$waitSeconds} секунд",
+                        'data' => [
+                            'seconds' => $waitSeconds,
+                        ]
+                    ], 429);
+                }
+
+                EmailVerification::where('email', $email)->delete();
+            }
 
             $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
             $verification = EmailVerification::create([
                 'code' => $code,
-                'email' => $request->email,
+                'email' => $email,
                 'sent_at' => now(),
-                'expires_at' => now()->addMinutes(30),
+                'expires_at' => now()->addMinutes(15),
                 'user_data' => json_encode([
                     'first_name' => $request->first_name,
                     'last_name' => $request->last_name,
@@ -61,7 +59,7 @@ class AuthController extends Controller
                 ])
             ]);
 
-            SendVerificationEmailJob::dispatch($request->email, $code);
+            SendVerificationEmailJob::dispatch($email, $code);
 
             return response()->json([
                 'message' => 'Код подтверждения отправлен на email',
@@ -69,20 +67,22 @@ class AuthController extends Controller
                     'email' => $verification->email
                 ]
             ]);
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
+
+        } catch (\Throwable $e) {
+            Log::error('Send verification error: ' . $e->getMessage());
 
             return response()->json([
                 'message' => 'Не удалось отправить код подтверждения. Попробуйте позже.',
             ], 500);
         }
     }
-
     public function checkVerificationCode(CheckEmailCodeRequest $request): JsonResponse
     {
+        $email = strtolower($request->email);
+
         $verification = EmailVerification::query()
             ->where('code', $request->code)
-            ->where('email', $request->email)
+            ->where('email', $email)
             ->where('expires_at', '>', now())
             ->first();
 
@@ -99,12 +99,15 @@ class AuthController extends Controller
 
     public function createUser(RegisterUserRequest $request): JsonResponse
     {
-        if (User::where('email', $request->email)->exists()) {
+        $email = strtolower($request->email);
+
+        if (User::where('email', $email)->exists()) {
             return response()->json([
                 'message' => 'Пользователь с таким email уже существует'
             ], 409);
         }
-        $verification = EmailVerification::where('email', $request->email)
+
+        $verification = EmailVerification::where('email', $email)
             ->where('code', $request->code)
             ->where('expires_at', '>', now())
             ->first();
@@ -124,30 +127,93 @@ class AuthController extends Controller
                 'first_name' => $userData->first_name,
                 'last_name' => $userData->last_name,
                 'middle_name' => $userData->middle_name,
-                'email' => $verification->email,
+                'email' => $email,
                 'password' => Hash::make($request->password),
             ]);
 
             $user->assignRole($userData->role);
 
+            $token = $user->createToken('auth_token')->plainTextToken;
+
             $verification->delete();
 
             DB::commit();
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
-
-            DB::rollBack();
 
             return response()->json([
-                'message' => 'Ошибка при создании пользователя. попробуйте позже',
+                'message' => 'Пользователь успешно создан',
+                'data' => [
+                    'user' => $user,
+                    'token' => $token
+                ]
+            ], 201);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Create user error: ' . $e->getMessage());
+
+            return response()->json([
+                'message' => 'Ошибка при создании пользователя. Попробуйте позже',
             ], 500);
         }
+    }
+
+    public function login(LoginRequest $request): JsonResponse
+    {
+        try {
+            $credentials = [
+                'email' => strtolower($request->email),
+                'password' => $request->password
+            ];
+
+            $remember = $request->boolean('remember', false);
+
+            if (!Auth::attempt($credentials, $remember)) {
+                return response()->json([
+                    'message' => 'Неверный логин или пароль'
+                ], 401);
+            }
+
+            $user = Auth::user();
+
+            $user->tokens()->delete();
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+            $user->load('roles');
+
+            return response()->json([
+                'message' => 'Успешный вход',
+                'data' => [
+                    'user' => $user,
+                    'token' => $token
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Login error: ' . $e->getMessage());
+
+            return response()->json([
+                'message' => 'Ошибка при входе. Попробуйте позже'
+            ], 500);
+        }
+    }
+
+    public function logout(): JsonResponse
+    {
+        Auth::user()->tokens()->delete();
 
         return response()->json([
-            'message' => 'Пользователь успешно создан',
+            'message' => 'Успешный выход из системы'
+        ]);
+    }
+
+    public function me(): JsonResponse
+    {
+        $user = Auth::user();
+        $user->load('roles');
+
+        return response()->json([
             'data' => [
                 'user' => $user
             ]
-        ], 201);
+        ]);
     }
 }

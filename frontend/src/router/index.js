@@ -8,16 +8,39 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+      meta: { title: 'Главная' }
+    },
+    {
+      path: '/vacancies',
+      name: 'vacancies',
+      component: () => import('../views/VacanciesView.vue'),
+      meta: { title: 'Вакансии' }
+    },
+    {
+      path: '/companies',
+      name: 'companies',
+      component: () => import('../views/CompaniesView.vue'),
+      meta: { title: 'Компании' }
+    },
+    {
+      path: '/resumes',
+      name: 'resumes',
+      component: () => import('../views/ResumesView.vue'),
+      meta: { title: 'Резюме' }
     },
     {
       path: '/about',
       name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue'),
-    },
-  ],
+      meta: { title: 'О проекте' }
+    }
+  ]
+})
+
+// Динамическое изменение заголовка страницы
+router.beforeEach((to, from, next) => {
+  document.title = `${to.meta.title} | HHPet`
+  next()
 })
 
 export default router

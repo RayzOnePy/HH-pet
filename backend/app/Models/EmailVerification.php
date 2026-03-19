@@ -15,4 +15,9 @@ class EmailVerification extends Model
         'expires_at',
         'user_data'
     ];
+
+    protected $casts = [
+        'sent_at' => 'datetime',
+        'expires_at' => 'datetime',
+    ];
 }
