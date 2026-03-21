@@ -19,7 +19,6 @@ class Company extends Model
 {
     protected $fillable = [
         'name',
-        'slug',
         'description',
         'logo_url',
         'is_verified',

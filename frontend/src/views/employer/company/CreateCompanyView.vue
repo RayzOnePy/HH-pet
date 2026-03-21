@@ -1,18 +1,13 @@
 <template>
-  <div class="edit-company">
+  <div class="create-company">
     <div class="page-header">
-      <h1>Редактирование компании</h1>
+      <h1>Создание компании</h1>
       <router-link to="/employer/company" class="back-link">
         ← Назад
       </router-link>
     </div>
 
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Загрузка...</p>
-    </div>
-
-    <form v-else class="company-form" @submit.prevent="updateCompany">
+    <form class="company-form" @submit.prevent="createCompany">
       <div class="form-group">
         <label>Название компании <span class="required">*</span></label>
         <input
@@ -55,7 +50,7 @@
               style="display: none"
             >
             <button type="button" class="btn-outline" @click="triggerFileInput">
-              Заменить логотип
+              Выбрать логотип
             </button>
             <span v-if="form.logo_file" class="file-name">
               {{ form.logo_file.name }}
@@ -69,8 +64,8 @@
         <router-link to="/employer/company" class="btn-outline">
           Отмена
         </router-link>
-        <button type="submit" class="btn-primary" :disabled="saving">
-          {{ saving ? 'Сохранение...' : 'Сохранить изменения' }}
+        <button type="submit" class="btn-primary" :disabled="loading">
+          {{ loading ? 'Создание...' : 'Создать компанию' }}
         </button>
       </div>
     </form>
@@ -78,16 +73,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../../../services/api'
 
 const router = useRouter()
-const loading = ref(true)
-const saving = ref(false)
+const loading = ref(false)
 const fileInput = ref(null)
 const previewUrl = ref('')
-const companyId = ref(null)
 const errors = ref({})
 
 const form = reactive({
@@ -95,29 +88,6 @@ const form = reactive({
   description: '',
   logo_file: null
 })
-
-const loadCompany = async () => {
-  try {
-    const response = await api.get('/my-company')
-    const company = response.data.data
-
-    companyId.value = company.id
-    form.name = company.name
-    form.description = company.description
-
-    if (company.logo_url) {
-      previewUrl.value = company.logo_url
-    }
-  } catch (error) {
-    if (error.response?.status === 404) {
-      router.push('/employer/company')
-    } else {
-      console.error('Error loading company:', error)
-    }
-  } finally {
-    loading.value = false
-  }
-}
 
 const triggerFileInput = () => {
   fileInput.value.click()
@@ -132,8 +102,8 @@ const onFileChange = (event) => {
   }
 }
 
-const updateCompany = async () => {
-  saving.value = true
+const createCompany = async () => {
+  loading.value = true
   errors.value = {}
 
   try {
@@ -145,10 +115,7 @@ const updateCompany = async () => {
       formData.append('logo', form.logo_file)
     }
 
-    // Для PUT запроса с FormData нужно добавить _method
-    formData.append('_method', 'PUT')
-
-    const response = await api.post(`/companies/${companyId.value}`, formData, {
+    const response = await api.post('/companies', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
 
@@ -160,20 +127,16 @@ const updateCompany = async () => {
     } else if (error.response?.data?.message) {
       alert(error.response.data.message)
     } else {
-      alert('Ошибка при обновлении компании')
+      alert('Ошибка при создании компании')
     }
   } finally {
-    saving.value = false
+    loading.value = false
   }
 }
-
-onMounted(() => {
-  loadCompany()
-})
 </script>
 
 <style scoped>
-.edit-company {
+.create-company {
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
@@ -198,28 +161,6 @@ h1 {
 
 .back-link:hover {
   text-decoration: underline;
-}
-
-.loading-state {
-  text-align: center;
-  padding: 60px 20px;
-  background: var(--bg-card-gradient);
-  border: 1px solid var(--border-color);
-  border-radius: 24px;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--border-color);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 20px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 .company-form {

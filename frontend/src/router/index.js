@@ -11,6 +11,18 @@ const router = createRouter({
       component: HomeView,
       meta: { title: 'Главная' }
     },
+    {
+      path: '/vacancies',
+      name: 'vacancies',
+      component: () => import('../views/VacanciesView.vue'),
+      meta: { title: 'Вакансии' }
+    },
+    {
+      path: '/about',
+      name: 'about',
+      component: () => import('../views/AboutView.vue'),
+      meta: { title: 'О проекте' }
+    },
 
     // РАБОТОДАТЕЛЬ
     {
@@ -61,16 +73,22 @@ const router = createRouter({
       meta: { title: 'Отклики', requiresEmployer: true }
     },
     {
-      path: '/employer/company',
-      name: 'myCompany',
-      component: () => import('../views/employer/company/CompanyView.vue'),
-      meta: { title: 'Моя компания', requiresEmployer: true }
+      path: '/employer/company/create',
+      name: 'createCompany',
+      component: () => import('../views/employer/company/CreateCompanyView.vue'),
+      meta: { title: 'Создание компании', requiresEmployer: true }
     },
     {
       path: '/employer/company/edit',
       name: 'editCompany',
       component: () => import('../views/employer/company/EditCompanyView.vue'),
       meta: { title: 'Редактирование компании', requiresEmployer: true }
+    },
+    {
+      path: '/employer/company',
+      name: 'myCompany',
+      component: () => import('../views/employer/company/CompanyView.vue'),
+      meta: { title: 'Моя компания', requiresEmployer: true }
     },
 
     // СОИСКАТЕЛЬ

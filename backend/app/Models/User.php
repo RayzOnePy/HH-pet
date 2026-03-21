@@ -127,4 +127,23 @@ class User extends Authenticatable
     {
         return $this->hasMany(VacancyView::class);
     }
+
+    public function companyRole()
+    {
+        $companyUser = $this->companies()->first();
+
+        if ($companyUser && $companyUser->pivot) {
+            return $companyUser->pivot->role;
+        }
+
+        return null;
+    }
+
+    public function company()
+    {
+        return $this->belongsToMany(Company::class, 'company_user')
+            ->withPivot('company_role_id')
+            ->withTimestamps()
+            ->first();
+    }
 }

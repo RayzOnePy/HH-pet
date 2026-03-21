@@ -20,7 +20,7 @@
     <footer class="footer">
       <div class="container">
         <div class="footer-content">
-          <p>&copy; 2026 HHPet. Сделано с 💚</p>
+          <p>&copy; 2026 HHPet</p>
           <div class="footer-links">
             <router-link to="/about">О проекте</router-link>
             <a href="#">Пользовательское соглашение</a>

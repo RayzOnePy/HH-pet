@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedInteger('salary_to')->nullable();
             $table->enum('experience', ['no', '1-3', '3-6', '6+'])->default('no');
             $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->string('city');
             $table->softDeletes();
             $table->timestamps();
         });

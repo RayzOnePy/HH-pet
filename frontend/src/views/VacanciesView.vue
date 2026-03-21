@@ -1,123 +1,386 @@
 <template>
-  <div class="vacancies">
+  <div class="vacancies-page">
     <h1>Вакансии</h1>
-    <div class="filters">
-      <input
-        type="text"
-        placeholder="Поиск вакансий..."
-        class="filter-input"
-      >
-      <select class="filter-select">
-        <option>Все города</option>
-        <option>Москва</option>
-        <option>СПб</option>
-      </select>
+    <p class="page-description">Найдите работу мечты</p>
+
+    <!-- Поиск и фильтры -->
+    <div class="search-section">
+      <div class="search-box">
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="Должность, компания, ключевые слова..."
+          class="search-input"
+          @input="handleSearch"
+        >
+        <button class="search-btn">🔍</button>
+      </div>
     </div>
 
-    <div class="vacancies-grid">
-      <div v-for="i in 6" :key="i" class="vacancy-card">
-        <h3>Frontend Developer</h3>
-        <p class="company">TechCorp</p>
-        <p class="salary">от 150 000 ₽</p>
-        <div class="tags">
-          <span class="tag">Vue.js</span>
-          <span class="tag">JavaScript</span>
+    <!-- Список вакансий -->
+    <div class="vacancies-list">
+      <div v-for="vacancy in vacancies" :key="vacancy.id" class="vacancy-card">
+        <div class="vacancy-header">
+          <div>
+            <h3>
+              <router-link :to="`/vacancies/${vacancy.id}`">
+                {{ vacancy.title }}
+              </router-link>
+            </h3>
+            <div class="company-name">{{ vacancy.company?.name || 'Компания' }}</div>
+          </div>
+          <div class="salary">
+            {{ formatSalary(vacancy.salary_from) }}
+            {{ vacancy.salary_to ? `- ${formatSalary(vacancy.salary_to)}` : '' }} ₽
+          </div>
+        </div>
+
+        <div class="vacancy-meta">
+          <span>📍 {{ vacancy.city || 'Не указан' }}</span>
+          <span>💼 {{ getExperienceText(vacancy.experience) }}</span>
+          <span>📅 {{ formatDate(vacancy.created_at) }}</span>
+        </div>
+
+        <div class="vacancy-description">
+          {{ truncateText(vacancy.description, 150) }}
+        </div>
+
+        <div class="vacancy-footer">
+          <router-link :to="`/vacancies/${vacancy.id}`" class="btn-outline">
+            Подробнее
+          </router-link>
         </div>
       </div>
+    </div>
+
+    <!-- Пагинация -->
+    <div class="pagination" v-if="meta.last_page > 1">
+      <button
+        class="page-btn"
+        :disabled="meta.current_page === 1"
+        @click="changePage(meta.current_page - 1)"
+      >
+        ←
+      </button>
+      <button
+        v-for="page in visiblePages"
+        :key="page"
+        class="page-btn"
+        :class="{ active: meta.current_page === page }"
+        @click="changePage(page)"
+      >
+        {{ page }}
+      </button>
+      <button
+        class="page-btn"
+        :disabled="meta.current_page === meta.last_page"
+        @click="changePage(meta.current_page + 1)"
+      >
+        →
+      </button>
+    </div>
+
+    <!-- Загрузка -->
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка вакансий...</p>
     </div>
   </div>
 </template>
 
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import api from '../services/api'
+
+const vacancies = ref([])
+const loading = ref(true)
+const searchQuery = ref('')
+const meta = ref({
+  current_page: 1,
+  last_page: 1,
+  per_page: 15,
+  total: 0
+})
+
+const visiblePages = computed(() => {
+  const total = meta.value.last_page
+  const current = meta.value.current_page
+  const pages = []
+
+  let start = Math.max(1, current - 2)
+  let end = Math.min(total, current + 2)
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i)
+  }
+
+  return pages
+})
+
+const fetchVacancies = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: meta.value.current_page,
+      per_page: 15
+    }
+
+    if (searchQuery.value) {
+      params.search = searchQuery.value
+    }
+
+    const response = await api.get('/vacancies', { params })
+    vacancies.value = response.data.data
+    meta.value = response.data.meta
+  } catch (error) {
+    console.error('Error fetching vacancies:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleSearch = () => {
+  meta.value.current_page = 1
+  fetchVacancies()
+}
+
+const changePage = (page) => {
+  if (page < 1 || page > meta.value.last_page) return
+  meta.value.current_page = page
+  fetchVacancies()
+}
+
+const formatSalary = (salary) => {
+  if (!salary) return 'не указана'
+  return salary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+}
+
+const getExperienceText = (experience) => {
+  const map = {
+    'no': 'Нет опыта',
+    '1-3': '1-3 года',
+    '3-6': '3-6 лет',
+    '6+': 'Более 6 лет'
+  }
+  return map[experience] || 'Не указан'
+}
+
+const formatDate = (date) => {
+  return new Date(date).toLocaleDateString('ru-RU')
+}
+
+const truncateText = (text, length) => {
+  if (!text) return ''
+  if (text.length <= length) return text
+  return text.substring(0, length) + '...'
+}
+
+onMounted(() => {
+  fetchVacancies()
+})
+</script>
+
 <style scoped>
-.vacancies {
-  animation: fadeIn 0.5s ease;
+.vacancies-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
 h1 {
   color: var(--text-primary);
-  margin-bottom: var(--spacing-xl);
-  font-size: var(--font-size-2xl);
+  margin-bottom: 8px;
 }
 
-.filters {
+.page-description {
+  color: var(--text-secondary);
+  margin-bottom: 30px;
+}
+
+.search-section {
+  margin-bottom: 30px;
+}
+
+.search-box {
+  position: relative;
+  max-width: 500px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 14px 20px;
+  padding-right: 50px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 40px;
+  color: var(--text-primary);
+  font-size: 16px;
+  transition: var(--transition-base);
+}
+
+.search-input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: var(--shadow-primary);
+}
+
+.search-btn {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.search-btn:hover {
+  color: var(--color-primary);
+}
+
+.vacancies-list {
   display: flex;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-xl);
-}
-
-.filter-input {
-  flex: 1;
-  padding: var(--spacing-md);
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-md);
-  color: var(--text-primary);
-}
-
-.filter-select {
-  padding: var(--spacing-md);
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-md);
-  color: var(--text-primary);
-  min-width: 150px;
-}
-
-.vacancies-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--spacing-lg);
+  flex-direction: column;
+  gap: 20px;
 }
 
 .vacancy-card {
-  background-color: var(--bg-tertiary);
-  padding: var(--spacing-xl);
-  border-radius: var(--border-radius-lg);
+  background: var(--bg-card-gradient);
   border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
   transition: var(--transition-base);
 }
 
 .vacancy-card:hover {
-  transform: translateY(-2px);
   border-color: var(--color-primary);
   box-shadow: var(--shadow-primary);
+  transform: translateX(4px);
 }
 
-.vacancy-card h3 {
+.vacancy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.vacancy-header h3 {
+  margin-bottom: 4px;
+}
+
+.vacancy-header h3 a {
   color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
+  text-decoration: none;
+  font-size: 20px;
 }
 
-.company {
+.vacancy-header h3 a:hover {
+  color: var(--color-primary);
+}
+
+.company-name {
   color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  margin-bottom: var(--spacing-sm);
+  font-size: 14px;
 }
 
 .salary {
   color: var(--color-primary);
+  font-size: 18px;
   font-weight: 600;
-  font-size: var(--font-size-lg);
-  margin-bottom: var(--spacing-md);
 }
 
-.tags {
+.vacancy-meta {
   display: flex;
-  gap: var(--spacing-xs);
+  gap: 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
-.tag {
-  background-color: var(--bg-secondary);
+.vacancy-description {
   color: var(--text-secondary);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--border-radius-sm);
-  font-size: var(--font-size-xs);
-  border: 1px solid var(--border-color);
+  line-height: 1.6;
+  margin-bottom: 16px;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+.vacancy-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-outline {
+  padding: 8px 20px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 30px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: var(--transition-base);
+}
+
+.btn-outline:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+
+.page-btn {
+  width: 40px;
+  height: 40px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.page-btn.active {
+  background: var(--gradient-primary);
+  color: var(--text-dark);
+  border: none;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

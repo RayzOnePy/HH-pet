@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('value')->nullable(false);
             $table->timestamps();
 
-            $table->unique(['user_id', 'type']);
+            $table->unique(['resume_id', 'type']);
         });
     }
 

@@ -10,6 +10,12 @@
 /.zed
 /auth.json
 
+backend/storage/
+backend/public/storage
+
+!backend/public/.gitkeep
+!backend/storage/.gitkeep
+
 Homestead.json
 Homestead.yaml
 Thumbs.db

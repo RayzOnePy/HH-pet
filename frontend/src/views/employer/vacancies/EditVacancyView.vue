@@ -7,22 +7,12 @@
       </router-link>
     </div>
 
-    <form class="vacancy-form" @submit.prevent="saveVacancy">
-      <!-- Статус вакансии -->
-      <div class="form-group">
-        <label>Статус вакансии</label>
-        <div class="status-toggles">
-          <label class="status-option">
-            <input type="radio" v-model="form.status" value="active">
-            <span class="status-badge active">Активная</span>
-          </label>
-          <label class="status-option">
-            <input type="radio" v-model="form.status" value="inactive">
-            <span class="status-badge inactive">В архиве</span>
-          </label>
-        </div>
-      </div>
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка вакансии...</p>
+    </div>
 
+    <form v-else class="vacancy-form" @submit.prevent="submitForm">
       <div class="form-group">
         <label>Название вакансии <span class="required">*</span></label>
         <input
@@ -30,7 +20,9 @@
           type="text"
           placeholder="Например: Senior Frontend Developer"
           class="form-input"
+          :class="{ error: errors.title }"
         >
+        <span v-if="errors.title" class="error-text">{{ errors.title }}</span>
       </div>
 
       <div class="form-row">
@@ -56,22 +48,39 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label>Город</label>
+          <label>Город <span class="required">*</span></label>
           <input
             v-model="form.city"
             type="text"
             placeholder="Москва"
             class="form-input"
+            :class="{ error: errors.city }"
           >
+          <span v-if="errors.city" class="error-text">{{ errors.city }}</span>
         </div>
         <div class="form-group">
-          <label>Опыт работы</label>
-          <select v-model="form.experience" class="form-select">
+          <label>Опыт работы <span class="required">*</span></label>
+          <select v-model="form.experience" class="form-select" :class="{ error: errors.experience }">
             <option value="no">Нет опыта</option>
             <option value="1-3">1-3 года</option>
             <option value="3-6">3-6 лет</option>
             <option value="6+">Более 6 лет</option>
           </select>
+          <span v-if="errors.experience" class="error-text">{{ errors.experience }}</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Статус вакансии</label>
+        <div class="status-options">
+          <label class="status-option">
+            <input type="radio" v-model="form.status" value="active">
+            <span class="status-badge active">Активна</span>
+          </label>
+          <label class="status-option">
+            <input type="radio" v-model="form.status" value="inactive">
+            <span class="status-badge inactive">В архиве</span>
+          </label>
         </div>
       </div>
 
@@ -82,67 +91,25 @@
           rows="8"
           placeholder="Подробное описание вакансии, требования, условия..."
           class="form-textarea"
+          :class="{ error: errors.description }"
         ></textarea>
+        <span v-if="errors.description" class="error-text">{{ errors.description }}</span>
       </div>
 
-      <div class="form-group">
-        <label>Навыки</label>
-        <div class="skills-input">
-          <input
-            v-model="newSkill"
-            type="text"
-            placeholder="Vue.js"
-            class="form-input"
-            @keydown.enter.prevent="addSkill"
-          >
-          <button type="button" class="btn-outline" @click="addSkill">+ Добавить</button>
-        </div>
-        <div class="skills-list">
-          <span v-for="skill in form.skills" :key="skill" class="skill-tag">
-            {{ skill }}
-            <button type="button" @click="removeSkill(skill)">✕</button>
-          </span>
-        </div>
-      </div>
-
-      <!-- Дополнительные параметры -->
-      <div class="form-group">
-        <label>Дополнительные параметры</label>
-        <div class="checkbox-group">
-          <label class="checkbox">
-            <input type="checkbox" v-model="form.remote">
-            <span>Удаленная работа</span>
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" v-model="form.business_trip">
-            <span>Возможны командировки</span>
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" v-model="form.relocation">
-            <span>Готовы к переезду</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Статистика (только для просмотра) -->
-      <div class="stats-section">
+      <div class="stats-section" v-if="vacancyStats">
         <h3>Статистика вакансии</h3>
         <div class="stats-grid">
           <div class="stat-item">
             <span class="stat-label">Просмотров</span>
-            <span class="stat-value">1,234</span>
+            <span class="stat-value">{{ vacancyStats.views_count || 0 }}</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">Откликов</span>
-            <span class="stat-value">48</span>
+            <span class="stat-value">{{ vacancyStats.responses_count || 0 }}</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">В избранном</span>
-            <span class="stat-value">23</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Приглашений</span>
-            <span class="stat-value">12</span>
+            <span class="stat-value">{{ vacancyStats.favorites_count || 0 }}</span>
           </div>
         </div>
       </div>
@@ -151,8 +118,8 @@
         <router-link to="/employer/vacancies" class="btn-outline">
           Отмена
         </router-link>
-        <button type="submit" class="btn-primary">
-          Сохранить изменения
+        <button type="submit" class="btn-primary" :disabled="saving">
+          {{ saving ? 'Сохранение...' : 'Сохранить изменения' }}
         </button>
       </div>
     </form>
@@ -160,44 +127,82 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import api from '../../../services/api'
 
 const router = useRouter()
+const route = useRoute()
+const vacancyId = route.params.id
 
-// Имитация загрузки данных вакансии
+const loading = ref(true)
+const saving = ref(false)
+const errors = ref({})
+const vacancyStats = ref(null)
+
 const form = reactive({
-  status: 'active',
-  title: 'Senior Frontend Developer',
-  salary_from: '250000',
-  salary_to: '350000',
-  city: 'Москва',
-  experience: '3-6',
-  description: 'Мы ищем опытного Frontend разработчика для работы над крупным проектом...',
-  skills: ['Vue.js', 'TypeScript', 'Pinia', 'Vite'],
-  remote: true,
-  business_trip: false,
-  relocation: false
+  title: '',
+  description: '',
+  salary_from: '',
+  salary_to: '',
+  experience: '1-3',
+  city: '',
+  status: 'active'
 })
 
-const newSkill = ref('')
+const loadVacancy = async () => {
+  try {
+    const response = await api.get(`/vacancies/${vacancyId}`)
+    const vacancy = response.data.data
 
-const addSkill = () => {
-  if (newSkill.value && !form.skills.includes(newSkill.value)) {
-    form.skills.push(newSkill.value)
-    newSkill.value = ''
+    form.title = vacancy.title
+    form.description = vacancy.description
+    form.salary_from = vacancy.salary_from
+    form.salary_to = vacancy.salary_to
+    form.experience = vacancy.experience
+    form.city = vacancy.city
+    form.status = vacancy.status
+
+    vacancyStats.value = {
+      views_count: vacancy.views_count,
+      responses_count: vacancy.responses_count,
+      favorites_count: vacancy.favorites_count
+    }
+  } catch (error) {
+    console.error('Error loading vacancy:', error)
+    router.push('/employer/vacancies')
+  } finally {
+    loading.value = false
   }
 }
 
-const removeSkill = (skill) => {
-  form.skills = form.skills.filter(s => s !== skill)
+const submitForm = async () => {
+  saving.value = true
+  errors.value = {}
+
+  const data = {
+    ...form,
+    salary_from: form.salary_from ? Number(form.salary_from) : null,
+    salary_to: form.salary_to ? Number(form.salary_to) : null
+  }
+
+  try {
+    await api.put(`/vacancies/${vacancyId}`, data)
+    router.push('/employer/vacancies')
+  } catch (error) {
+    if (error.response?.data?.errors) {
+      errors.value = error.response.data.errors
+    } else {
+      alert(error.response?.data?.message || 'Ошибка при сохранении')
+    }
+  } finally {
+    saving.value = false
+  }
 }
 
-const saveVacancy = () => {
-  console.log('Saving vacancy:', form)
-  // Здесь будет сохранение
-  router.push('/employer/vacancies')
-}
+onMounted(() => {
+  loadVacancy()
+})
 </script>
 
 <style scoped>
@@ -216,6 +221,7 @@ const saveVacancy = () => {
 
 h1 {
   color: var(--text-primary);
+  font-size: 28px;
 }
 
 .back-link {
@@ -227,22 +233,41 @@ h1 {
   text-decoration: underline;
 }
 
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .vacancy-form {
   background: var(--bg-card-gradient);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: 24px;
   padding: 30px;
 }
 
 .form-group {
-  margin-bottom: 25px;
+  margin-bottom: 24px;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  margin-bottom: 25px;
+  margin-bottom: 24px;
 }
 
 label {
@@ -278,13 +303,25 @@ label {
   box-shadow: var(--shadow-primary);
 }
 
+.form-input.error,
+.form-select.error,
+.form-textarea.error {
+  border-color: var(--color-danger);
+}
+
 .form-textarea {
   resize: vertical;
   min-height: 150px;
 }
 
-/* Status toggles */
-.status-toggles {
+.error-text {
+  display: block;
+  color: var(--color-danger);
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.status-options {
   display: flex;
   gap: 20px;
 }
@@ -303,96 +340,22 @@ label {
 }
 
 .status-badge {
-  padding: 6px 16px;
+  padding: 4px 12px;
   border-radius: 30px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .status-badge.active {
   background: rgba(0, 255, 136, 0.1);
   color: var(--color-primary);
-  border: 1px solid var(--color-primary);
 }
 
 .status-badge.inactive {
   background: var(--bg-secondary);
   color: var(--text-secondary);
-  border: 1px solid var(--border-color);
 }
 
-/* Skills */
-.skills-input {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.skills-input .form-input {
-  flex: 1;
-}
-
-.skills-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.skill-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--color-primary);
-  border-radius: 30px;
-  color: var(--text-primary);
-  font-size: 14px;
-  transition: var(--transition-base);
-}
-
-.skill-tag:hover {
-  background: var(--bg-tertiary);
-  box-shadow: var(--shadow-primary);
-}
-
-.skill-tag button {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 16px;
-  padding: 0 4px;
-  transition: var(--transition-base);
-}
-
-.skill-tag button:hover {
-  color: var(--color-danger);
-  transform: scale(1.2);
-}
-
-/* Checkbox group */
-.checkbox-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.checkbox {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  color: var(--text-primary);
-}
-
-.checkbox input[type="checkbox"] {
-  accent-color: var(--color-primary);
-  width: 18px;
-  height: 18px;
-}
-
-/* Statistics section */
 .stats-section {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -409,7 +372,7 @@ label {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 15px;
 }
 
@@ -434,7 +397,6 @@ label {
   font-weight: 600;
 }
 
-/* Buttons */
 .form-actions {
   display: flex;
   gap: 15px;
@@ -445,62 +407,39 @@ label {
 }
 
 .btn-primary {
-  padding: 14px 32px;
+  padding: 12px 30px;
   background: var(--gradient-primary);
   border: none;
   border-radius: 40px;
   color: var(--text-dark);
   font-weight: 600;
-  font-size: 16px;
   cursor: pointer;
   transition: var(--transition-base);
-  text-decoration: none;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: var(--shadow-primary-lg);
 }
 
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-outline {
-  padding: 14px 32px;
+  padding: 12px 30px;
   background: transparent;
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--border-color);
   border-radius: 40px;
   color: var(--text-secondary);
-  font-weight: 500;
-  font-size: 16px;
+  text-decoration: none;
   cursor: pointer;
   transition: var(--transition-base);
-  text-decoration: none;
-  text-align: center;
 }
 
 .btn-outline:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
-  transform: translateY(-2px);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .form-row {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-
-  .skills-input {
-    flex-direction: column;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
-
-  .btn-primary,
-  .btn-outline {
-    width: 100%;
-    text-align: center;
-  }
 }
 </style>
