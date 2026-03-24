@@ -1,3 +1,4 @@
+// frontend/src/services/api.js
 import axios from 'axios'
 
 const api = axios.create({
@@ -22,9 +23,9 @@ api.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401) {
-      // Если неавторизован - чистим localStorage
       localStorage.removeItem('auth_token')
       localStorage.removeItem('user')
+      window.location.href = '/login'
     }
 
     if (error.response) {

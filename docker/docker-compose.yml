@@ -3,7 +3,7 @@ services:
     build:
       context: ../
       dockerfile: docker/Dockerfile.backend
-    container_name: hh-app
+    container_name: hh-backend
     restart: unless-stopped
     working_dir: /var/www/backend
     volumes:

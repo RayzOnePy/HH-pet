@@ -3,7 +3,7 @@
     <div class="page-header">
       <h1>Мои вакансии</h1>
       <router-link
-        v-if="hasCompany"
+        v-if="authStore.hasCompany"
         to="/employer/vacancies/create"
         class="btn-primary"
       >
@@ -12,7 +12,7 @@
     </div>
 
     <!-- Если нет компании -->
-    <div v-if="!hasCompany && !loadingCompany" class="no-company-block">
+    <div v-if="!authStore.hasCompany && !authStore.loading" class="no-company-block">
       <div class="no-company-icon">🏢</div>
       <h3>Сначала создайте компанию</h3>
       <p>Чтобы размещать вакансии, у вас должна быть компания.</p>
@@ -21,14 +21,14 @@
       </router-link>
     </div>
 
-    <!-- Табы статусов -->
-    <div v-else-if="hasCompany" class="tabs">
+    <!-- Табы статусов (только если есть компания) -->
+    <div v-else-if="authStore.hasCompany" class="tabs">
       <button
         v-for="tab in tabs"
         :key="tab.value"
         class="tab"
-        :class="{ active: activeTab === tab.value }"
-        @click="changeTab(tab.value)"
+        :class="{ active: vacancyStore.currentStatus === tab.value }"
+        @click="vacancyStore.changeTab(tab.value)"
       >
         {{ tab.label }}
         <span class="count">{{ tab.count }}</span>
@@ -36,8 +36,11 @@
     </div>
 
     <!-- Список вакансий -->
-    <div v-if="hasCompany && !loadingVacancies && vacancies.length > 0" class="vacancies-list">
-      <div v-for="vacancy in vacancies" :key="vacancy.id" class="vacancy-card">
+    <div
+      v-if="authStore.hasCompany && !vacancyStore.loading && vacancyStore.vacancies.length > 0"
+      class="vacancies-list"
+    >
+      <div v-for="vacancy in vacancyStore.vacancies" :key="vacancy.id" class="vacancy-card">
         <div class="vacancy-header">
           <div class="vacancy-info">
             <h3>
@@ -93,11 +96,17 @@
     </div>
 
     <!-- Пустое состояние -->
-    <div v-else-if="hasCompany && !loadingVacancies && vacancies.length === 0" class="empty-state">
+    <div
+      v-else-if="authStore.hasCompany && !vacancyStore.loading && vacancyStore.vacancies.length === 0"
+      class="empty-state"
+    >
       <div class="empty-icon">📋</div>
-      <h3>У вас пока нет вакансий</h3>
-      <p>Создайте первую вакансию, чтобы начать поиск сотрудников</p>
-      <div class="empty-actions">
+      <h3>{{ emptyStateTitle }}</h3>
+      <p>{{ emptyStateMessage }}</p>
+      <div
+        class="empty-actions"
+        v-if="vacancyStore.currentStatus === 'all' || vacancyStore.currentStatus === 'active'"
+      >
         <router-link to="/employer/vacancies/create" class="btn-primary">
           + Создать вакансию
         </router-link>
@@ -105,17 +114,17 @@
     </div>
 
     <!-- Загрузка -->
-    <div v-if="loadingVacancies" class="loading-state">
+    <div v-if="vacancyStore.loading" class="loading-state">
       <div class="spinner"></div>
       <p>Загрузка вакансий...</p>
     </div>
 
     <!-- Пагинация -->
-    <div v-if="hasCompany && meta.last_page > 1" class="pagination">
+    <div v-if="authStore.hasCompany && vacancyStore.meta.last_page > 1" class="pagination">
       <button
         class="page-btn"
-        :disabled="meta.current_page === 1"
-        @click="changePage(meta.current_page - 1)"
+        :disabled="vacancyStore.meta.current_page === 1"
+        @click="vacancyStore.changePage(vacancyStore.meta.current_page - 1)"
       >
         ←
       </button>
@@ -123,15 +132,15 @@
         v-for="page in visiblePages"
         :key="page"
         class="page-btn"
-        :class="{ active: meta.current_page === page }"
-        @click="changePage(page)"
+        :class="{ active: vacancyStore.meta.current_page === page }"
+        @click="vacancyStore.changePage(page)"
       >
         {{ page }}
       </button>
       <button
         class="page-btn"
-        :disabled="meta.current_page === meta.last_page"
-        @click="changePage(meta.current_page + 1)"
+        :disabled="vacancyStore.meta.current_page === vacancyStore.meta.last_page"
+        @click="vacancyStore.changePage(vacancyStore.meta.current_page + 1)"
       >
         →
       </button>
@@ -140,23 +149,37 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useVacancies } from '../../../composables/useVacancies'
-import { useCompany } from '../../../composables/useCompany'
+import { computed, onMounted } from 'vue'
+import { useAuthStore } from '../../../stores/auth'
+import { useVacancyStore } from '../../../stores/vacancyStore'
 
-const { vacancies, loading: loadingVacancies, meta, fetchMyVacancies, toggleStatus, deleteVacancy } = useVacancies()
-const { company, hasCompany, loading: loadingCompany, fetchCompany } = useCompany()
+const authStore = useAuthStore()
+const vacancyStore = useVacancyStore()
 
-const activeTab = ref('all')
+// Табы используют counts из vacancyStore (приходят из бэкенда)
 const tabs = computed(() => [
-  { value: 'all', label: 'Все', count: vacancies.value?.length || 0 },
-  { value: 'active', label: 'Активные', count: vacancies.value?.filter(v => v.status === 'active').length || 0 },
-  { value: 'inactive', label: 'В архиве', count: vacancies.value?.filter(v => v.status === 'inactive').length || 0 }
+  { value: 'all', label: 'Все', count: vacancyStore.counts.total || 0 },
+  { value: 'active', label: 'Активные', count: vacancyStore.counts.active || 0 },
+  { value: 'inactive', label: 'В архиве', count: vacancyStore.counts.inactive || 0 }
 ])
 
+// Сообщения для пустого состояния
+const emptyStateTitle = computed(() => {
+  if (vacancyStore.currentStatus === 'all') return 'У вас пока нет вакансий'
+  if (vacancyStore.currentStatus === 'active') return 'Нет активных вакансий'
+  return 'Нет вакансий в архиве'
+})
+
+const emptyStateMessage = computed(() => {
+  if (vacancyStore.currentStatus === 'all') return 'Создайте первую вакансию, чтобы начать поиск сотрудников'
+  if (vacancyStore.currentStatus === 'active') return 'У вас нет активных вакансий. Активируйте вакансии из архива или создайте новую'
+  return 'У вас нет вакансий в архиве'
+})
+
+// Страницы для пагинации
 const visiblePages = computed(() => {
-  const total = meta.value.last_page
-  const current = meta.value.current_page
+  const total = vacancyStore.meta.last_page
+  const current = vacancyStore.meta.current_page
   const pages = []
 
   let start = Math.max(1, current - 2)
@@ -169,40 +192,13 @@ const visiblePages = computed(() => {
   return pages
 })
 
-const changeTab = (tab) => {
-  activeTab.value = tab
-  const status = tab === 'all' ? null : tab
-  fetchMyVacancies(1, status)
-}
-
-const changePage = (page) => {
-  const status = activeTab.value === 'all' ? null : activeTab.value
-  fetchMyVacancies(page, status)
-}
-
-const toggleStatusHandler = async (id) => {
-  const result = await toggleStatus(id)
-  if (result.success) {
-    const status = activeTab.value === 'all' ? null : activeTab.value
-    fetchMyVacancies(meta.value.current_page, status)
-  }
-}
-
-const confirmDelete = async (id) => {
-  if (confirm('Вы уверены, что хотите удалить эту вакансию?')) {
-    const result = await deleteVacancy(id)
-    if (result.success) {
-      const status = activeTab.value === 'all' ? null : activeTab.value
-      fetchMyVacancies(meta.value.current_page, status)
-    }
-  }
-}
-
+// Форматирование зарплаты
 const formatSalary = (salary) => {
   if (!salary) return 'не указана'
   return salary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 }
 
+// Текст опыта
 const getExperienceText = (experience) => {
   const map = {
     'no': 'Нет опыта',
@@ -213,23 +209,44 @@ const getExperienceText = (experience) => {
   return map[experience] || 'Не указан'
 }
 
+// Форматирование даты
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString('ru-RU')
 }
 
+// Обрезание текста
 const truncateText = (text, length) => {
   if (!text) return ''
   if (text.length <= length) return text
   return text.substring(0, length) + '...'
 }
 
+// Обработчик изменения статуса
+const toggleStatusHandler = async (id) => {
+  await vacancyStore.toggleStatus(id)
+}
+
+// Подтверждение удаления
+const confirmDelete = async (id) => {
+  if (confirm('Вы уверены, что хотите удалить эту вакансию?')) {
+    await vacancyStore.deleteVacancy(id)
+  }
+}
+
+// Инициализация
 onMounted(async () => {
-  await fetchCompany()
-  if (hasCompany.value) {
-    fetchMyVacancies()
+  // Проверяем наличие компании (данные уже загружены в authStore)
+  if (!authStore.hasCompany) {
+    return
+  }
+
+  // Если вакансии еще не загружены — загружаем
+  if (vacancyStore.vacancies.length === 0) {
+    await vacancyStore.fetchVacancies(1, 'active')
   }
 })
 </script>
+
 
 <style scoped>
 .my-vacancies {
@@ -308,6 +325,7 @@ h1 {
   cursor: pointer;
   position: relative;
   font-size: 16px;
+  transition: var(--transition-base);
 }
 
 .tab.active {

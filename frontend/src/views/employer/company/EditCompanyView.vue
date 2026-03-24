@@ -98,7 +98,7 @@ const form = reactive({
 
 const loadCompany = async () => {
   try {
-    const response = await api.get('/my-company')
+    const response = await api.get('/employer/company')
     const company = response.data.data
 
     companyId.value = company.id

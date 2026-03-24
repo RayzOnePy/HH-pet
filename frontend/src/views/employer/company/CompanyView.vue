@@ -78,7 +78,7 @@ const loading = ref(true)
 const fetchCompany = async () => {
   loading.value = true
   try {
-    const response = await api.get('/my-company')
+    const response = await api.get('/employer/company')
     company.value = response.data.data
   } catch (error) {
     if (error.response?.status === 404) {

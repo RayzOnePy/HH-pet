@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ResumeEducation extends Model
 {
+    protected $table = 'resume_educations';
+
     protected $fillable = [
         'resume_id',
         'institution',

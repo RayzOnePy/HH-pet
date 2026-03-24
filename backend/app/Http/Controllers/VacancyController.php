@@ -170,8 +170,18 @@ class VacancyController extends Controller
 
         if (!$company) {
             return response()->json([
-                'message' => 'У вас нет компании',
-                'data' => []
+                'data' => [],
+                'meta' => [
+                    'total' => 0,
+                    'per_page' => 15,
+                    'current_page' => 1,
+                    'last_page' => 1,
+                ],
+                'counts' => [
+                    'total' => 0,
+                    'active' => 0,
+                    'inactive' => 0,
+                ]
             ]);
         }
 
@@ -179,8 +189,19 @@ class VacancyController extends Controller
             ->with('company')
             ->withCount(['responses', 'favorites']);
 
+        // Получаем счетчики ДО пагинации и фильтрации
+        $totalCount = (clone $query)->count();
+        $activeCount = (clone $query)->where('status', 'active')->count();
+        $inactiveCount = (clone $query)->where('status', 'inactive')->count();
+
+        // Фильтр по статусу
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
         $vacancies = $query->paginate($request->get('per_page', 15));
 
+        // Добавляем количество просмотров
         $vacancies->getCollection()->each(function ($vacancy) {
             $vacancy->views_count = $vacancy->views()->count();
         });
@@ -192,6 +213,11 @@ class VacancyController extends Controller
                 'per_page' => $vacancies->perPage(),
                 'current_page' => $vacancies->currentPage(),
                 'last_page' => $vacancies->lastPage(),
+            ],
+            'counts' => [
+                'total' => $totalCount,
+                'active' => $activeCount,
+                'inactive' => $inactiveCount,
             ]
         ]);
     }

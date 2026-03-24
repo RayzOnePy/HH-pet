@@ -234,6 +234,8 @@ class AuthController extends Controller
         $user = Auth::user();
         $user->load('roles');
 
+        $company = $user->companies()->first();
+
         return response()->json([
             'data' => [
                 'user' => [
@@ -245,10 +247,20 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'birthday' => $user->birthday,
                     'gender' => $user->gender,
+                    'role' => $user->roles->first()?->name,
                     'created_at' => $user->created_at,
                     'updated_at' => $user->updated_at,
-                    'role' => $user->roles->first()?->name,
                 ],
+                'company' => $company ? [
+                    'id' => $company->id,
+                    'name' => $company->name,
+                    'slug' => $company->slug,
+                    'description' => $company->description,
+                    'logo_url' => $company->logo_url,
+                    'website' => $company->website,
+                    'city' => $company->city,
+                    'employees_count' => $company->employees_count,
+                ] : null,
             ]
         ]);
     }
