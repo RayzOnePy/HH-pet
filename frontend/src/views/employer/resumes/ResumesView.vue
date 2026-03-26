@@ -278,7 +278,6 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 
-// Состояние
 const searchQuery = ref('')
 const showFilters = ref(false)
 const sortBy = ref('date')
@@ -287,7 +286,6 @@ const viewMode = ref('list')
 const currentPage = ref(1)
 const itemsPerPage = 10
 
-// Фильтры
 const filters = reactive({
   salary_from: '',
   salary_to: '',
@@ -298,19 +296,16 @@ const filters = reactive({
 
 const newSkill = ref('')
 
-// Модалка
 const showInviteModal = ref(false)
 const selectedCandidateId = ref(null)
 const selectedVacancy = ref(null)
 
-// Опции сортировки
 const sortOptions = [
   { value: 'date', label: 'По дате' },
   { value: 'salary', label: 'По зарплате' },
   { value: 'experience', label: 'По опыту' }
 ]
 
-// Мои вакансии (для приглашения)
 const myVacancies = [
   { id: 1, title: 'Senior Frontend Developer', salary: '250 000 - 350 000' },
   { id: 2, title: 'Vue.js Developer', salary: '200 000 - 300 000' },

@@ -1,17 +1,14 @@
-// frontend/src/stores/auth.js
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '../services/api'
 
 export const useAuthStore = defineStore('auth', () => {
-  // State
   const user = ref(null)
   const company = ref(null)
   const token = ref(localStorage.getItem('auth_token'))
   const loading = ref(false)
   const initialized = ref(false)
 
-  // Getters
   const isLoggedIn = computed(() => !!token.value)
   const hasCompany = computed(() => company.value !== null)
   const userName = computed(() => {
@@ -20,7 +17,6 @@ export const useAuthStore = defineStore('auth', () => {
   })
   const userRole = computed(() => user.value?.role || null)
 
-  // Инициализация — ОДИН запрос при старте приложения
   async function init() {
     if (initialized.value) return
 
@@ -47,7 +43,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Логин
   async function login(credentials) {
     loading.value = true
     try {
@@ -60,7 +55,6 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('auth_token', data.data.token)
       localStorage.setItem('user', JSON.stringify(user.value))
 
-      // После логина получаем полную информацию (с компанией)
       const meResponse = await api.get('/auth/me')
       company.value = meResponse.data.data.company
 
@@ -75,7 +69,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Регистрация
   async function register(userData) {
     loading.value = true
     try {
@@ -88,7 +81,6 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('auth_token', data.data.token)
       localStorage.setItem('user', JSON.stringify(user.value))
 
-      // У нового пользователя компании нет
       company.value = null
 
       return { success: true, data: data.data }
@@ -102,7 +94,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Обновить данные о компании (после создания или редактирования)
   async function refreshCompany() {
     try {
       const response = await api.get('/auth/me')
@@ -114,7 +105,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Выход
   async function logout() {
     try {
       if (token.value) {

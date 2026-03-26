@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import HomeView from '../views/HomeView.vue'
+import HomeView from '../views/shared/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,16 +12,23 @@ const router = createRouter({
       meta: { title: 'Главная' }
     },
     {
+      path: '/about',
+      name: 'about',
+      component: () => import('../views/shared/AboutView.vue'),
+      meta: { title: 'О проекте' }
+    },
+
+    {
       path: '/vacancies',
       name: 'vacancies',
-      component: () => import('../views/VacanciesView.vue'),
+      component: () => import('../views/shared/VacanciesView.vue'),
       meta: { title: 'Вакансии' }
     },
     {
-      path: '/about',
-      name: 'about',
-      component: () => import('../views/AboutView.vue'),
-      meta: { title: 'О проекте' }
+      path: '/vacancies/:id',
+      name: 'vacancy',
+      component: () => import('../views/shared/VacancyView.vue'),
+      meta: { title: 'Вакансия' }
     },
 
     // РАБОТОДАТЕЛЬ
@@ -122,7 +129,7 @@ const router = createRouter({
       meta: { title: 'Мои отклики', requiresApplicant: true }
     },
     {
-      path: '/applicant/favorites',
+      path: '/applicant/favorites-vacancies',
       name: 'applicantFavorites',
       component: () => import('../views/applicant/vacancies/FavoritesView.vue'),
       meta: { title: 'Избранное', requiresApplicant: true }
@@ -134,6 +141,12 @@ const router = createRouter({
       meta: { title: 'Моё резюме', requiresApplicant: true }
     },
     {
+      path: '/applicant/resume/create',
+      name: 'applicantResumeCreate',
+      component: () => import('../views/applicant/resume/CreateResumeView.vue'),
+      meta: { title: 'Создание резюме', requiresApplicant: true }
+    },
+    {
       path: '/applicant/resume/edit',
       name: 'applicantResumeEdit',
       component: () => import('../views/applicant/resume/EditResumeView.vue'),
@@ -143,28 +156,23 @@ const router = createRouter({
   ]
 })
 
-// Защита маршрутов
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   const isAuthenticated = authStore.isLoggedIn
   const userRole = authStore.userRole
 
-  // Устанавливаем заголовок
   document.title = `${to.meta.title || 'HHPet'} | HHPet`
 
-  // Проверка на requiresAuth
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'home' })
     return
   }
 
-  // Проверка на requiresApplicant
   if (to.meta.requiresApplicant && (!isAuthenticated || userRole !== 'applicant')) {
     next({ name: 'home' })
     return
   }
 
-  // Проверка на requiresEmployer
   if (to.meta.requiresEmployer && (!isAuthenticated || userRole !== 'employer')) {
     next({ name: 'home' })
     return

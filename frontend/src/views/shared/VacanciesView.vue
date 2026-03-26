@@ -1,19 +1,19 @@
 <template>
   <div class="vacancies-page">
     <div class="page-header">
-      <h1>Поиск вакансий</h1>
-      <div class="stats" v-if="total > 0">
-        Найдено {{ total }} вакансий
+      <h1>Вакансии</h1>
+      <div class="stats" v-if="meta.total > 0">
+        Найдено {{ meta.total }} вакансий
       </div>
     </div>
 
-    <!-- Поисковая строка -->
+    <!-- Поиск и фильтры -->
     <div class="search-section">
       <div class="search-box">
         <input
           type="text"
           v-model="searchQuery"
-          @keyup.enter="handleSearch"
+          @input="debouncedSearch"
           placeholder="Должность, компания, ключевые слова..."
           class="search-input"
         >
@@ -37,7 +37,7 @@
               type="number"
               v-model="filters.salary_from"
               placeholder="100 000"
-              @input="debouncedApplyFilters"
+              @input="applyFilters"
             >
           </div>
           <div class="filter-group">
@@ -46,7 +46,7 @@
               type="number"
               v-model="filters.salary_to"
               placeholder="300 000"
-              @input="debouncedApplyFilters"
+              @input="applyFilters"
             >
           </div>
           <div class="filter-group">
@@ -95,13 +95,26 @@
         <div class="vacancy-header">
           <div class="vacancy-info">
             <h3>
-              <router-link :to="`/applicant/vacancies/${vacancy.id}`">
+              <a
+                :href="`/vacancies/${vacancy.id}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="vacancy-link"
+              >
                 {{ vacancy.title }}
-              </router-link>
+              </a>
             </h3>
-            <div class="company-name">
+            <div class="company-info">
               <span class="company-icon">🏢</span>
-              {{ vacancy.company?.name || 'Компания не указана' }}
+              <a
+                :href="`/companies/${vacancy.company?.id}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="company-link"
+              >
+                {{ vacancy.company?.name || 'Компания не указана' }}
+              </a>
+              <span v-if="vacancy.company?.is_verified" class="verified-badge">✓ Проверено</span>
             </div>
           </div>
           <div class="salary">
@@ -112,44 +125,25 @@
         <div class="vacancy-tags">
           <span class="tag">{{ getExperienceText(vacancy.experience) }}</span>
           <span class="tag">{{ vacancy.city || 'Город не указан' }}</span>
-          <span v-if="vacancy.employment_types?.length" class="tag">
-            {{ vacancy.employment_types.map(t => t.name).join(', ') }}
-          </span>
           <span v-if="vacancy.work_schedules?.length" class="tag">
-            {{ vacancy.work_schedules.map(s => s.name).join(', ') }}
+            🕒 {{ vacancy.work_schedules.map(s => s.name).join(', ') }}
           </span>
-        </div>
-
-        <div class="vacancy-description">
-          {{ truncateText(vacancy.description, 150) }}
         </div>
 
         <div class="vacancy-meta">
           <span>📅 {{ formatDate(vacancy.created_at) }}</span>
           <span>👁️ {{ vacancy.views_count || 0 }} просмотров</span>
-          <span>✉️ {{ vacancy.responses_count || 0 }} откликов</span>
         </div>
 
         <div class="vacancy-footer">
-          <div class="company-info">
-            <span class="company-logo">{{ vacancy.company?.logo_url ? '🖼️' : '🏢' }}</span>
-            <span>{{ vacancy.company?.name || 'Компания' }}</span>
-            <span v-if="vacancy.company?.is_verified" class="verified-badge">✓ Проверено</span>
-          </div>
-          <div class="actions">
-            <button
-              class="icon-btn"
-              :class="{ active: vacancy.is_favorite }"
-              @click="toggleFavorite(vacancy)"
-              :disabled="favoriteLoading === vacancy.id"
-            >
-              <span v-if="favoriteLoading === vacancy.id" class="loading-spinner-small"></span>
-              <span v-else>{{ vacancy.is_favorite ? '⭐' : '☆' }}</span>
-            </button>
-            <button class="btn-primary-small" @click="respondToVacancy(vacancy.id)">
-              Откликнуться
-            </button>
-          </div>
+          <a
+            :href="`/vacancies/${vacancy.id}`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-outline"
+          >
+            Подробнее →
+          </a>
         </div>
       </div>
     </div>
@@ -163,11 +157,11 @@
     </div>
 
     <!-- Пагинация -->
-    <div v-if="totalPages > 1" class="pagination">
+    <div v-if="meta.last_page > 1" class="pagination">
       <button
         class="page-btn"
-        :disabled="currentPage === 1"
-        @click="goToPage(currentPage - 1)"
+        :disabled="meta.current_page === 1"
+        @click="changePage(meta.current_page - 1)"
       >
         ←
       </button>
@@ -175,15 +169,15 @@
         v-for="page in visiblePages"
         :key="page"
         class="page-btn"
-        :class="{ active: currentPage === page }"
-        @click="goToPage(page)"
+        :class="{ active: meta.current_page === page }"
+        @click="changePage(page)"
       >
         {{ page }}
       </button>
       <button
         class="page-btn"
-        :disabled="currentPage === totalPages"
-        @click="goToPage(currentPage + 1)"
+        :disabled="meta.current_page === meta.last_page"
+        @click="changePage(meta.current_page + 1)"
       >
         →
       </button>
@@ -192,28 +186,25 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
 import { debounce } from 'lodash'
-import api from '../../../services/api'
-import { useAuthStore } from '../../../stores/auth'
-import { useDictionaries } from '../../../composables/useDictionaries'
+import api from '../../services/api.js'
+import { useDictionaries } from '../../composables/useDictionaries.js'
 
-const router = useRouter()
-const authStore = useAuthStore()
 const { workSchedules, fetchWorkSchedules } = useDictionaries()
 
 const vacancies = ref([])
-const loading = ref(false)
-const total = ref(0)
-const currentPage = ref(1)
-const perPage = ref(15)
-const totalPages = ref(1)
+const loading = ref(true)
 const searchQuery = ref('')
 const showFilters = ref(false)
-const favoriteLoading = ref(null)
+const meta = ref({
+  current_page: 1,
+  last_page: 1,
+  per_page: 15,
+  total: 0
+})
 
-const filters = reactive({
+const filters = ref({
   salary_from: '',
   salary_to: '',
   experience: '',
@@ -223,33 +214,114 @@ const filters = reactive({
 
 const activeFiltersCount = computed(() => {
   let count = 0
-  if (filters.salary_from) count++
-  if (filters.salary_to) count++
-  if (filters.experience) count++
-  if (filters.work_schedule_id) count++
-  if (filters.sort_by !== 'created_at') count++
+  if (filters.value.salary_from) count++
+  if (filters.value.salary_to) count++
+  if (filters.value.experience) count++
+  if (filters.value.work_schedule_id) count++
+  if (filters.value.sort_by !== 'created_at') count++
   return count
 })
 
 const visiblePages = computed(() => {
+  const total = meta.value.last_page
+  const current = meta.value.current_page
   const pages = []
-  const maxVisible = 5
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(totalPages.value, start + maxVisible - 1)
 
-  if (end - start + 1 < maxVisible) {
-    start = Math.max(1, end - maxVisible + 1)
-  }
+  let start = Math.max(1, current - 2)
+  let end = Math.min(total, current + 2)
 
   for (let i = start; i <= end; i++) {
     pages.push(i)
   }
+
   return pages
 })
 
+const fetchVacancies = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: meta.value.current_page,
+      per_page: 15
+    }
+
+    if (searchQuery.value) {
+      params.search = searchQuery.value
+    }
+
+    if (filters.value.salary_from) {
+      params.salary_from = filters.value.salary_from
+    }
+
+    if (filters.value.salary_to) {
+      params.salary_to = filters.value.salary_to
+    }
+
+    if (filters.value.experience) {
+      params.experience = filters.value.experience
+    }
+
+    if (filters.value.work_schedule_id) {
+      params.work_schedule_id = filters.value.work_schedule_id
+    }
+
+    if (filters.value.sort_by) {
+      const sortField = filters.value.sort_by === '-salary_from' ? 'salary_from' : filters.value.sort_by
+      const sortOrder = filters.value.sort_by === '-salary_from' ? 'desc' : (filters.value.sort_by === 'salary_from' ? 'asc' : 'desc')
+      params.sort_by = sortField
+      params.sort_order = sortOrder
+    }
+
+    const response = await api.get('/vacancies', { params })
+    vacancies.value = response.data.data
+    meta.value = response.data.meta
+  } catch (error) {
+    console.error('Error fetching vacancies:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const applyFilters = () => {
+  meta.value.current_page = 1
+  fetchVacancies()
+}
+
+const resetFilters = () => {
+  filters.value = {
+    salary_from: '',
+    salary_to: '',
+    experience: '',
+    work_schedule_id: '',
+    sort_by: 'created_at'
+  }
+  applyFilters()
+}
+
+const resetAll = () => {
+  searchQuery.value = ''
+  resetFilters()
+}
+
+const handleSearch = () => {
+  meta.value.current_page = 1
+  fetchVacancies()
+}
+
+const debouncedSearch = debounce(() => {
+  handleSearch()
+}, 500)
+
+const changePage = (page) => {
+  if (page < 1 || page > meta.value.last_page) return
+  meta.value.current_page = page
+  fetchVacancies()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 const formatSalary = (from, to) => {
   if (!from && !to) return 'з/п не указана'
-  if (from && to) return `${from.toLocaleString()} - ${to.toLocaleString()} ₽`
+  if (from && to) return `${from.toLocaleString()} — ${to.toLocaleString()} ₽`
   if (from) return `от ${from.toLocaleString()} ₽`
   if (to) return `до ${to.toLocaleString()} ₽`
   return 'з/п не указана'
@@ -275,121 +347,6 @@ const formatDate = (date) => {
   if (diff < 7) return `${diff} дня назад`
   return d.toLocaleDateString('ru-RU')
 }
-
-const truncateText = (text, length) => {
-  if (!text) return ''
-  if (text.length <= length) return text
-  return text.substring(0, length) + '...'
-}
-
-const fetchVacancies = async () => {
-  loading.value = true
-
-  try {
-    const params = {
-      page: currentPage.value,
-      per_page: perPage.value,
-      search: searchQuery.value || undefined,
-      salary_from: filters.salary_from || undefined,
-      salary_to: filters.salary_to || undefined,
-      experience: filters.experience || undefined,
-      work_schedule_id: filters.work_schedule_id || undefined,
-      sort_by: filters.sort_by === '-salary_from' ? 'salary_from' : filters.sort_by,
-      sort_order: filters.sort_by === '-salary_from' ? 'desc' : (filters.sort_by === 'salary_from' ? 'asc' : 'desc')
-    }
-
-    Object.keys(params).forEach(key => {
-      if (params[key] === undefined) delete params[key]
-    })
-
-    const response = await api.get('/vacancies', { params })
-    vacancies.value = response.data.data
-    total.value = response.data.meta.total
-    totalPages.value = response.data.meta.last_page
-
-  } catch (error) {
-    console.error('Error fetching vacancies:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-const toggleFavorite = async (vacancy) => {
-  if (!authStore.isLoggedIn) {
-    alert('Войдите в систему, чтобы добавлять в избранное')
-    return
-  }
-
-  favoriteLoading.value = vacancy.id
-
-  try {
-    if (vacancy.is_favorite) {
-      await api.delete(`/applicant/favorites/${vacancy.id}`)
-      vacancy.is_favorite = false
-    } else {
-      await api.post(`/applicant/favorites/${vacancy.id}`)
-      vacancy.is_favorite = true
-    }
-  } catch (error) {
-    console.error('Error toggling favorite:', error)
-    alert(error.response?.data?.message || 'Ошибка при добавлении в избранное')
-  } finally {
-    favoriteLoading.value = null
-  }
-}
-
-const respondToVacancy = async (vacancyId) => {
-  if (!authStore.isLoggedIn) {
-    alert('Войдите в систему, чтобы откликнуться на вакансию')
-    return
-  }
-
-  try {
-    await api.post('/applicant/responses', { vacancy_id: vacancyId })
-    alert('Отклик успешно отправлен!')
-  } catch (error) {
-    console.error('Error responding to vacancy:', error)
-    alert(error.response?.data?.message || 'Ошибка при отправке отклика')
-  }
-}
-
-const applyFilters = () => {
-  currentPage.value = 1
-  fetchVacancies()
-}
-
-const resetFilters = () => {
-  filters.salary_from = ''
-  filters.salary_to = ''
-  filters.experience = ''
-  filters.work_schedule_id = ''
-  filters.sort_by = 'created_at'
-  applyFilters()
-}
-
-const resetAll = () => {
-  searchQuery.value = ''
-  resetFilters()
-}
-
-const handleSearch = () => {
-  currentPage.value = 1
-  fetchVacancies()
-}
-
-const goToPage = (page) => {
-  currentPage.value = page
-  fetchVacancies()
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-
-const debouncedApplyFilters = debounce(() => {
-  applyFilters()
-}, 500)
-
-watch(currentPage, () => {
-  fetchVacancies()
-})
 
 onMounted(async () => {
   await fetchWorkSchedules()
@@ -569,7 +526,7 @@ h1 {
 }
 
 .vacancy-card {
-  background: var(--bg-card-gradient);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 20px;
   padding: 24px;
@@ -595,27 +552,48 @@ h1 {
   margin: 0 0 8px 0;
 }
 
-.vacancy-info h3 a {
+.vacancy-link {
   color: var(--text-primary);
   text-decoration: none;
   font-size: 20px;
   font-weight: 600;
 }
 
-.vacancy-info h3 a:hover {
+.vacancy-link:hover {
   color: var(--color-primary);
 }
 
-.company-name {
+.company-info {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-secondary);
-  font-size: 14px;
+  flex-wrap: wrap;
 }
 
 .company-icon {
   font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.company-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  transition: var(--transition-base);
+}
+
+.company-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.verified-badge {
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--color-primary);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .salary {
@@ -641,13 +619,6 @@ h1 {
   color: var(--text-secondary);
 }
 
-.vacancy-description {
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 16px;
-  font-size: 14px;
-}
-
 .vacancy-meta {
   display: flex;
   gap: 20px;
@@ -659,108 +630,22 @@ h1 {
 
 .vacancy-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: flex-end;
   padding-top: 16px;
   border-top: 1px solid var(--border-color);
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.company-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.company-logo {
-  font-size: 20px;
-}
-
-.verified-badge {
-  background: rgba(0, 255, 136, 0.1);
-  color: var(--color-primary);
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: var(--transition-base);
-  padding: 4px;
-  min-width: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.icon-btn:hover:not(:disabled) {
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-.icon-btn.active {
-  opacity: 1;
-  color: #ffc107;
-}
-
-.icon-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.loading-spinner-small {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.btn-primary-small {
-  padding: 8px 20px;
-  background: var(--gradient-primary);
-  border: none;
-  border-radius: 30px;
-  color: var(--text-dark);
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition-base);
-}
-
-.btn-primary-small:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-primary-lg);
 }
 
 .btn-outline {
-  padding: 10px 24px;
+  padding: 8px 20px;
   background: transparent;
   border: 1px solid var(--border-color);
   border-radius: 30px;
   color: var(--text-secondary);
-  cursor: pointer;
+  text-decoration: none;
   transition: var(--transition-base);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .btn-outline:hover {
@@ -783,10 +668,14 @@ h1 {
   margin: 0 auto 20px;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  background: var(--bg-card-gradient);
+  background: var(--bg-card);
   border: 2px dashed var(--border-color);
   border-radius: 24px;
   margin: 40px auto;
@@ -881,12 +770,7 @@ h1 {
   }
 
   .vacancy-footer {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .actions {
-    justify-content: flex-end;
+    justify-content: center;
   }
 
   .pagination {

@@ -3,234 +3,121 @@
     <div class="page-header">
       <h1>Редактирование резюме</h1>
       <router-link to="/applicant/resume" class="back-link">
-        ← Назад
+        ← Назад к резюме
       </router-link>
     </div>
 
-    <form class="resume-form" @submit.prevent="saveResume">
-      <!-- Личная информация -->
-      <div class="form-section">
-        <h2>Личная информация</h2>
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка резюме...</p>
+    </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label>Имя <span class="required">*</span></label>
-            <input v-model="form.first_name" type="text" class="form-input">
-          </div>
-          <div class="form-group">
-            <label>Фамилия <span class="required">*</span></label>
-            <input v-model="form.last_name" type="text" class="form-input">
-          </div>
-        </div>
+    <ResumeForm
+      v-else-if="hasResume"
+      :initial-data="formData"
+      :errors="errors"
+      :saving="saving"
+      :degrees="educationDegrees"
+      :work-schedules="workSchedules"
+      submit-button-text="Сохранить изменения"
+      @submit="handleSubmit"
+    />
 
-        <div class="form-row">
-          <div class="form-group">
-            <label>Город</label>
-            <input v-model="form.city" type="text" class="form-input">
-          </div>
-          <div class="form-group">
-            <label>Желаемая зарплата</label>
-            <input v-model="form.salary" type="number" class="form-input">
-          </div>
-        </div>
-      </div>
-
-      <!-- Контакты -->
-      <div class="form-section">
-        <h2>Контакты</h2>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Телефон</label>
-            <input v-model="form.phone" type="tel" class="form-input">
-          </div>
-          <div class="form-group">
-            <label>Telegram</label>
-            <input v-model="form.telegram" type="text" class="form-input">
-          </div>
-        </div>
-      </div>
-
-      <!-- О себе -->
-      <div class="form-section">
-        <h2>О себе</h2>
-        <div class="form-group">
-          <label>Краткое описание</label>
-          <textarea v-model="form.about" rows="4" class="form-textarea"></textarea>
-        </div>
-      </div>
-
-      <!-- Навыки -->
-      <div class="form-section">
-        <h2>Навыки</h2>
-        <div class="skills-input">
-          <input
-            v-model="newSkill"
-            type="text"
-            placeholder="Vue.js"
-            class="form-input"
-            @keydown.enter.prevent="addSkill"
-          >
-          <button type="button" class="btn-outline" @click="addSkill">+</button>
-        </div>
-        <div class="skills-list">
-          <span v-for="skill in form.skills" :key="skill" class="skill-tag">
-            {{ skill }}
-            <button type="button" @click="removeSkill(skill)">✕</button>
-          </span>
-        </div>
-      </div>
-
-      <!-- Опыт работы -->
-      <div class="form-section">
-        <h2>Опыт работы</h2>
-        <div v-for="(exp, index) in form.experience" :key="index" class="experience-item">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Должность</label>
-              <input v-model="exp.title" type="text" class="form-input">
-            </div>
-            <div class="form-group">
-              <label>Компания</label>
-              <input v-model="exp.company" type="text" class="form-input">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>С</label>
-              <input v-model="exp.start_date" type="month" class="form-input">
-            </div>
-            <div class="form-group">
-              <label>По</label>
-              <input v-model="exp.end_date" type="month" class="form-input">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Обязанности и достижения</label>
-            <textarea v-model="exp.description" rows="3" class="form-textarea"></textarea>
-          </div>
-          <button type="button" class="btn-outline-small" @click="removeExperience(index)">
-            Удалить
-          </button>
-        </div>
-        <button type="button" class="btn-outline" @click="addExperience">
-          + Добавить опыт работы
-        </button>
-      </div>
-
-      <!-- Образование -->
-      <div class="form-section">
-        <h2>Образование</h2>
-        <div v-for="(edu, index) in form.education" :key="index" class="education-item">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Учебное заведение</label>
-              <input v-model="edu.institution" type="text" class="form-input">
-            </div>
-            <div class="form-group">
-              <label>Степень</label>
-              <input v-model="edu.degree" type="text" class="form-input">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Год окончания</label>
-              <input v-model="edu.year" type="number" class="form-input">
-            </div>
-          </div>
-          <button type="button" class="btn-outline-small" @click="removeEducation(index)">
-            Удалить
-          </button>
-        </div>
-        <button type="button" class="btn-outline" @click="addEducation">
-          + Добавить образование
-        </button>
-      </div>
-
-      <div class="form-actions">
-        <router-link to="/applicant/resume" class="btn-outline">
-          Отмена
-        </router-link>
-        <button type="submit" class="btn-primary">
-          Сохранить изменения
-        </button>
-      </div>
-    </form>
+    <div v-else class="empty-state">
+      <div class="empty-icon">📄</div>
+      <h3>Резюме не найдено</h3>
+      <p>У вас ещё нет резюме. Создайте его, чтобы работодатели могли найти вас</p>
+      <router-link to="/applicant/resume/create" class="btn-primary">
+        + Создать резюме
+      </router-link>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useResume } from '../../../composables/useResume'
+import { useDictionaries } from '../../../composables/useDictionaries'
+import ResumeForm from '../../../components/ResumeForm.vue'
 
-const newSkill = ref('')
+const router = useRouter()
+const { resume, loading, hasResume, fetchMyResume, updateResume } = useResume()
+const { educationDegrees, workSchedules, fetchEducationDegrees, fetchWorkSchedules } = useDictionaries()
+const saving = ref(false)
+const errors = ref({})
 
-const form = reactive({
-  first_name: 'Александр',
-  last_name: 'Петров',
-  city: 'Москва',
-  salary: 250000,
-  phone: '+7 (999) 123-45-67',
-  telegram: '@alex_dev',
-  about: 'Опытный Frontend разработчик...',
-  skills: ['Vue.js', 'React', 'TypeScript'],
-  experience: [
-    {
-      title: 'Senior Frontend Developer',
-      company: 'TechCorp',
-      start_date: '2022-01',
-      end_date: '',
-      description: 'Разработка SPA приложений...'
-    }
-  ],
-  education: [
-    {
-      institution: 'МГУ',
-      degree: 'Бакалавр прикладной математики',
-      year: 2019
-    }
-  ]
+const formData = reactive({
+  title: '',
+  salary: null,
+  work_schedule_ids: [],
+  contacts: [],
+  skills: [],
+  work_experiences: [],
+  educations: []
 })
 
-const addSkill = () => {
-  if (newSkill.value && !form.skills.includes(newSkill.value)) {
-    form.skills.push(newSkill.value)
-    newSkill.value = ''
+const populateForm = () => {
+  if (!resume.value) return
+
+  formData.title = resume.value.title || ''
+  formData.salary = resume.value.salary || null
+  formData.work_schedule_ids = resume.value.work_schedules?.map(s => s.id) || []
+  formData.contacts = resume.value.contacts?.map(c => ({ ...c })) || []
+  formData.skills = resume.value.skills?.map(s => ({ skill: s.skill, level: s.level })) || []
+  formData.work_experiences = resume.value.work_experiences?.map(w => ({ ...w })) || []
+  formData.educations = resume.value.educations?.map(e => ({
+    ...e,
+    degree_id: e.degree?.id
+  })) || []
+}
+
+const handleSubmit = async (data) => {
+  saving.value = true
+  errors.value = {}
+
+  const submitData = {
+    ...data,
+    salary: data.salary ? Number(data.salary) : null,
+    work_schedule_ids: data.work_schedule_ids || [],
+    contacts: data.contacts.filter(c => c.value.trim()),
+    skills: data.skills.filter(s => s.skill.trim()),
+    work_experiences: data.work_experiences.filter(w => w.title.trim()),
+    educations: data.educations.filter(e => e.institution.trim())
   }
+
+  const result = await updateResume(submitData)
+
+  if (result.success) {
+    router.push('/applicant/resume')
+  } else {
+    if (result.errors) {
+      errors.value = result.errors
+      setTimeout(() => {
+        const firstError = document.querySelector('.error-text')
+        if (firstError) {
+          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+    } else {
+      alert(result.error || 'Ошибка обновления резюме')
+    }
+  }
+
+  saving.value = false
 }
 
-const removeSkill = (skill) => {
-  form.skills = form.skills.filter(s => s !== skill)
-}
+onMounted(async () => {
+  await Promise.all([
+    fetchEducationDegrees(),
+    fetchWorkSchedules(),
+    fetchMyResume()
+  ])
 
-const addExperience = () => {
-  form.experience.push({
-    title: '',
-    company: '',
-    start_date: '',
-    end_date: '',
-    description: ''
-  })
-}
-
-const removeExperience = (index) => {
-  form.experience.splice(index, 1)
-}
-
-const addEducation = () => {
-  form.education.push({
-    institution: '',
-    degree: '',
-    year: ''
-  })
-}
-
-const removeEducation = (index) => {
-  form.education.splice(index, 1)
-}
-
-const saveResume = () => {
-  console.log('Saving resume:', form)
-}
+  if (hasResume.value) {
+    populateForm()
+  }
+})
 </script>
 
 <style scoped>
@@ -247,156 +134,77 @@ const saveResume = () => {
   margin-bottom: 30px;
 }
 
+h1 {
+  color: var(--text-primary);
+  font-size: 28px;
+}
+
 .back-link {
   color: var(--color-primary);
   text-decoration: none;
 }
 
-.resume-form {
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
   background: var(--bg-card-gradient);
-  border: 1px solid var(--border-color);
+  border: 2px dashed var(--border-color);
   border-radius: 24px;
-  padding: 30px;
+  margin: 40px auto;
 }
 
-.form-section {
-  margin-bottom: 40px;
-  padding-bottom: 30px;
-  border-bottom: 1px solid var(--border-color);
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.7;
 }
 
-.form-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.form-section h2 {
+.empty-state h3 {
   color: var(--text-primary);
-  font-size: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
+.empty-state p {
   color: var(--text-secondary);
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-
-.required {
-  color: var(--color-danger);
-}
-
-.form-input,
-.form-textarea {
-  width: 100%;
-  padding: 12px;
-  background: var(--bg-secondary);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 16px;
-}
-
-.form-input:focus,
-.form-textarea:focus {
-  border-color: var(--color-primary);
-  outline: none;
-}
-
-.skills-input {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.skills-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.skill-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--color-primary);
-  border-radius: 30px;
-  color: var(--text-primary);
-}
-
-.skill-tag button {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.skill-tag button:hover {
-  color: var(--color-danger);
-}
-
-.experience-item,
-.education-item {
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 20px;
   margin-bottom: 20px;
-  position: relative;
-}
-
-.btn-outline-small {
-  padding: 6px 16px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: 30px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  margin-top: 10px;
-}
-
-.btn-outline {
-  padding: 12px 24px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: 30px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.btn-outline:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.form-actions {
-  display: flex;
-  gap: 15px;
-  justify-content: flex-end;
-  margin-top: 30px;
 }
 
 .btn-primary {
-  padding: 12px 30px;
+  padding: 12px 24px;
   background: var(--gradient-primary);
   border: none;
   border-radius: 30px;
   color: var(--text-dark);
   font-weight: 600;
-  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-primary-lg);
 }
 </style>

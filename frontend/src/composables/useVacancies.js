@@ -1,4 +1,3 @@
-// frontend/src/composables/useVacancies.js
 import { ref } from 'vue'
 import api from '../services/api'
 
@@ -25,11 +24,10 @@ export function useVacancies() {
         params.status = status
       }
 
-      // ОДИН ЗАПРОС — получаем и список, и счетчики
       const response = await api.get('/employer/vacancies', { params })
       vacancies.value = response.data.data
       meta.value = response.data.meta
-      counts.value = response.data.counts  // счетчики приходят вместе со списком
+      counts.value = response.data.counts
     } catch (error) {
       console.error('Error fetching vacancies:', error)
     } finally {

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 /**
  * @property int $id
@@ -61,8 +62,10 @@ class Vacancy extends Model
         if (!$user) {
             return;
         }
-
+        Log::debug('a');
         if (!$this->isViewedByUser($user)) {
+            Log::debug('b');
+
             $this->views()->create([
                 'user_id' => $user->id
             ]);
@@ -84,19 +87,15 @@ class Vacancy extends Model
         return $this->hasMany(VacancyResponse::class);
     }
 
-    public function favorites()
+    public function favoritedBy()
     {
-        return $this->hasMany(Favorite::class);
+        return $this->belongsToMany(User::class, 'favorite_vacancies', 'vacancy_id', 'user_id')
+            ->withTimestamps();
     }
 
     public function workSchedules()
     {
         return $this->belongsToMany(WorkSchedule::class, 'vacancy_work_schedules');
-    }
-
-    public function employmentTypes()
-    {
-        return $this->belongsToMany(EmploymentType::class, 'vacancy_employment_types');
     }
 
     public function scopeActive($query)

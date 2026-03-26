@@ -69,7 +69,6 @@
 </template>
 
 <script setup>
-// Заглушка
 </script>
 
 <style scoped>

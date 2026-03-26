@@ -1,5 +1,4 @@
 <?php
-// database/seeders/TestUserSeeder.php
 
 namespace Database\Seeders;
 
@@ -69,7 +68,6 @@ class TestUserSeeder extends Seeder
         $activeVacancies = [];
         $inactiveVacancies = [];
 
-        // Создаем активные вакансии
         for ($i = 0; $i < 200; $i++) {
             $title = $jobTitles[array_rand($jobTitles)];
             $salaryFrom = rand(50000, 150000);
@@ -90,7 +88,6 @@ class TestUserSeeder extends Seeder
             ];
         }
 
-        // Создаем архивные вакансии
         for ($i = 0; $i < 100; $i++) {
             $title = $jobTitles[array_rand($jobTitles)];
             $salaryFrom = rand(50000, 150000);
@@ -111,7 +108,6 @@ class TestUserSeeder extends Seeder
             ];
         }
 
-        // Вставляем все вакансии
         Vacancy::insert(array_merge($activeVacancies, $inactiveVacancies));
 
         // ==================== ПОЛЬЗОВАТЕЛЬ 3: Соискатель без резюме ====================
@@ -138,15 +134,12 @@ class TestUserSeeder extends Seeder
         ]);
         $applicant->assignRole(UserRole::APPLICANT);
 
-        // Создаем резюме (только поля, которые есть в миграции)
         $resume = Resume::create([
             'user_id' => $applicant->id,
             'title' => 'Senior Laravel Developer',
             'salary' => 180000,
-            'can_business_trip' => true,
         ]);
 
-        // Добавляем опыт работы
         $works = [
             [
                 'title' => 'Lead PHP Developer',
@@ -182,7 +175,6 @@ class TestUserSeeder extends Seeder
             ]);
         }
 
-        // Добавляем образование
         $degrees = EducationDegree::all();
 
         $educations = [
@@ -222,7 +214,6 @@ class TestUserSeeder extends Seeder
             ]);
         }
 
-        // Добавляем навыки
         $skills = [
             'PHP', 'Laravel', 'JavaScript', 'Vue.js', 'PostgreSQL', 'Redis',
             'Docker', 'Git', 'REST API', 'MySQL', 'Linux', 'Nginx'
@@ -236,25 +227,6 @@ class TestUserSeeder extends Seeder
                 'level' => $level,
             ]);
         }
-
-        $this->command->info('========================================');
-        $this->command->info('Тестовые данные успешно созданы!');
-        $this->command->info('========================================');
-        $this->command->info('Пользователи:');
-        $this->command->info('  1. empty-employer@gmail.com     | пароль: password | работодатель без компании');
-        $this->command->info('  2. employer@gmail.com           | пароль: password | работодатель + компания + 300 вакансий');
-        $this->command->info('  3. empty-applicant@gmail.com    | пароль: password | соискатель без резюме');
-        $this->command->info('  4. applicant@gmail.com          | пароль: password | соискатель с полным резюме');
-        $this->command->info('========================================');
-        $this->command->info('Компания: ТехноСила');
-        $this->command->info('  - 200 активных вакансий');
-        $this->command->info('  - 100 архивных вакансий');
-        $this->command->info('========================================');
-        $this->command->info('Резюме Анны Ивановой:');
-        $this->command->info('  - 3 места работы');
-        $this->command->info('  - 2 диплома об образовании');
-        $this->command->info('  - 12 навыков');
-        $this->command->info('========================================');
     }
 
     private function generateVacancyDescription(string $title): string

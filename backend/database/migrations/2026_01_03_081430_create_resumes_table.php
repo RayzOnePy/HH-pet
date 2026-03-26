@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('user_id')->unique()->constrained('users')->onDelete('cascade');
             $table->string('title')->nullable(false);
             $table->unsignedInteger('salary')->nullable();
-            $table->boolean('can_business_trip')->default(false);
+            $table->boolean('is_active')->default(false);
             $table->timestamps();
         });
     }

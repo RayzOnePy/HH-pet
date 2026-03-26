@@ -1,10 +1,8 @@
-// frontend/src/stores/vacancyStore.js
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import api from '../services/api'
 
 export const useVacancyStore = defineStore('vacancy', () => {
-  // State
   const vacancies = ref([])
   const loading = ref(false)
   const meta = ref({
@@ -21,7 +19,6 @@ export const useVacancyStore = defineStore('vacancy', () => {
   const currentStatus = ref('active')
   const currentPage = ref(1)
 
-  // Получить список вакансий (один запрос)
   const fetchVacancies = async (page = null, status = null) => {
     try {
       loading.value = true
@@ -38,7 +35,7 @@ export const useVacancyStore = defineStore('vacancy', () => {
 
       vacancies.value = response.data.data
       meta.value = response.data.meta
-      counts.value = response.data.counts  // счетчики приходят в ответе
+      counts.value = response.data.counts
 
       currentPage.value = targetPage
       currentStatus.value = targetStatus
@@ -52,17 +49,14 @@ export const useVacancyStore = defineStore('vacancy', () => {
     }
   }
 
-  // Сменить таб
   const changeTab = async (status) => {
     await fetchVacancies(1, status)
   }
 
-  // Сменить страницу
   const changePage = async (page) => {
     await fetchVacancies(page, currentStatus.value)
   }
 
-  // Изменить статус вакансии
   const toggleStatus = async (id) => {
     try {
       await api.patch(`/employer/vacancies/${id}/toggle-status`)
@@ -74,7 +68,6 @@ export const useVacancyStore = defineStore('vacancy', () => {
     }
   }
 
-  // Удалить вакансию
   const deleteVacancy = async (id) => {
     try {
       await api.delete(`/employer/vacancies/${id}`)
@@ -86,7 +79,6 @@ export const useVacancyStore = defineStore('vacancy', () => {
     }
   }
 
-  // Сбросить состояние
   const reset = () => {
     vacancies.value = []
     meta.value = { current_page: 1, last_page: 1, total: 0, per_page: 15 }

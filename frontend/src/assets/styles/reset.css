@@ -1,4 +1,3 @@
-/* Современный сброс стилей */
 *,
 *::before,
 *::after {
@@ -20,19 +19,16 @@ body {
   line-height: 1.5;
 }
 
-/* Убираем стили списков */
 ul,
 ol {
   list-style: none;
 }
 
-/* Убираем стили ссылок */
 a {
   text-decoration: none;
   color: inherit;
 }
 
-/* Делаем изображения адаптивными */
 img,
 svg,
 video {
@@ -41,7 +37,6 @@ video {
   height: auto;
 }
 
-/* Стили для форм */
 input,
 button,
 textarea,
@@ -56,7 +51,6 @@ button {
   cursor: pointer;
 }
 
-/* Убираем лишние отступы у заголовков */
 h1, h2, h3, h4, h5, h6 {
   font-size: inherit;
   font-weight: inherit;

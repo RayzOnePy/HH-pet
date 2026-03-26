@@ -4,11 +4,14 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Auth;
 
 class VacancyResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $user = Auth::user();
+
         return [
             'id' => $this->id,
             'title' => $this->title,
@@ -20,22 +23,22 @@ class VacancyResource extends JsonResource
             'status' => $this->status,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+
             'company' => new CompanyResource($this->whenLoaded('company')),
-            'views_count' => $this->when(isset($this->views_count), $this->views_count, function() {
-                return $this->views()->count();
+            'work_schedules' => $this->whenLoaded('workSchedules', function () {
+                return $this->workSchedules->map(fn($schedule) => [
+                    'id' => $schedule->id,
+                    'name' => $schedule->name,
+                ]);
             }),
-            'responses_count' => $this->whenCounted('responses'),
-            'favorites_count' => $this->whenCounted('favorites'),
-            'has_responded' => $this->when($request->user(), function () use ($request) {
-               return $this->responses()
-                    ->where('candidate_id', $request->user()->id)
-                   ->exists();
-            }),
-            'is_favorite' => $this->when($request->user(), function () use ($request) {
-                return $this->favorites()
-                    ->where('user_id', $request->user()->id)
-                    ->exists();
-            })
+
+            'views_count' => $this->views_count ?? $this->views()->count(),
+            'responses_count' => $this->responses_count ?? 0,
+            'favorites_count' => $this->favorited_by_count ?? 0,
+
+            'is_favorite' => $user ? $this->favoritedBy()->where('user_id', $user->id)->exists() : false,
+
+            'has_responded' => $user ? $this->responses()->where('candidate_id', $user->id)->exists() : false,
         ];
     }
 }

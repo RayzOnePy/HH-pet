@@ -62,7 +62,7 @@
           <span class="action-icon">✉️</span>
           <span class="action-text">Мои отклики</span>
         </router-link>
-        <router-link to="/applicant/favorites" class="action-card">
+        <router-link to="/applicant/favorites-vacancies" class="action-card">
           <span class="action-icon">⭐</span>
           <span class="action-text">Избранное</span>
         </router-link>
@@ -107,8 +107,7 @@ import { useAuthStore } from '../../../stores/auth'
 const authStore = useAuthStore()
 const user = computed(() => authStore.user)
 
-// Заглушка данных
-const hasResume = ref(true) // false - если нет резюме
+const hasResume = ref(true)
 
 const stats = ref({
   responses: 12,

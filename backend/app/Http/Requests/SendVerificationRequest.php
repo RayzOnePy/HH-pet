@@ -42,27 +42,22 @@ class SendVerificationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            // Обязательные поля
             'first_name.required' => 'Имя обязательно для заполнения',
             'last_name.required' => 'Фамилия обязательна для заполнения',
             'email.required' => 'Email обязателен для заполнения',
             'role.required' => 'Роль обязательна для выбора',
 
-            // Формат полей
             'first_name.regex' => 'Имя может содержать только буквы и дефис',
             'last_name.regex' => 'Фамилия может содержать только буквы и дефис',
             'middle_name.regex' => 'Отчество может содержать только буквы и дефис',
 
-            // Максимальная длина
             'first_name.max' => 'Имя не должно превышать 255 символов',
             'last_name.max' => 'Фамилия не должна превышать 255 символов',
             'middle_name.max' => 'Отчество не должно превышать 255 символов',
 
-            // Email
             'email.email' => 'Введите корректный email адрес',
             'email.unique' => 'Этот email уже зарегистрирован',
 
-            // Роль
             'role.in' => 'Выбрана недопустимая роль',
         ];
     }

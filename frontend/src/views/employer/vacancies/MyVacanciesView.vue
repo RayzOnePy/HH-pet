@@ -156,14 +156,12 @@ import { useVacancyStore } from '../../../stores/vacancyStore'
 const authStore = useAuthStore()
 const vacancyStore = useVacancyStore()
 
-// Табы используют counts из vacancyStore (приходят из бэкенда)
 const tabs = computed(() => [
   { value: 'all', label: 'Все', count: vacancyStore.counts.total || 0 },
   { value: 'active', label: 'Активные', count: vacancyStore.counts.active || 0 },
   { value: 'inactive', label: 'В архиве', count: vacancyStore.counts.inactive || 0 }
 ])
 
-// Сообщения для пустого состояния
 const emptyStateTitle = computed(() => {
   if (vacancyStore.currentStatus === 'all') return 'У вас пока нет вакансий'
   if (vacancyStore.currentStatus === 'active') return 'Нет активных вакансий'
@@ -176,7 +174,6 @@ const emptyStateMessage = computed(() => {
   return 'У вас нет вакансий в архиве'
 })
 
-// Страницы для пагинации
 const visiblePages = computed(() => {
   const total = vacancyStore.meta.last_page
   const current = vacancyStore.meta.current_page
@@ -192,13 +189,11 @@ const visiblePages = computed(() => {
   return pages
 })
 
-// Форматирование зарплаты
 const formatSalary = (salary) => {
   if (!salary) return 'не указана'
   return salary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 }
 
-// Текст опыта
 const getExperienceText = (experience) => {
   const map = {
     'no': 'Нет опыта',
@@ -209,38 +204,31 @@ const getExperienceText = (experience) => {
   return map[experience] || 'Не указан'
 }
 
-// Форматирование даты
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString('ru-RU')
 }
 
-// Обрезание текста
 const truncateText = (text, length) => {
   if (!text) return ''
   if (text.length <= length) return text
   return text.substring(0, length) + '...'
 }
 
-// Обработчик изменения статуса
 const toggleStatusHandler = async (id) => {
   await vacancyStore.toggleStatus(id)
 }
 
-// Подтверждение удаления
 const confirmDelete = async (id) => {
   if (confirm('Вы уверены, что хотите удалить эту вакансию?')) {
     await vacancyStore.deleteVacancy(id)
   }
 }
 
-// Инициализация
 onMounted(async () => {
-  // Проверяем наличие компании (данные уже загружены в authStore)
   if (!authStore.hasCompany) {
     return
   }
 
-  // Если вакансии еще не загружены — загружаем
   if (vacancyStore.vacancies.length === 0) {
     await vacancyStore.fetchVacancies(1, 'active')
   }

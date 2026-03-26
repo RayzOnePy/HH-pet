@@ -24,7 +24,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $remember_token
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\UserContact> $contacts
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ResumeContact> $contacts
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Company> $companies
  * @property-read \App\Models\Resume|null $resume
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Vacancy> $createdVacancies
@@ -88,7 +88,7 @@ class User extends Authenticatable
     // Отношения
     public function contacts()
     {
-        return $this->hasMany(UserContact::class);
+        return $this->hasMany(ResumeContact::class);
     }
 
     public function resume()
@@ -118,9 +118,10 @@ class User extends Authenticatable
         return $this->hasMany(Message::class, 'sender_id');
     }
 
-    public function favorites()
+    public function favoriteVacancies()
     {
-        return $this->hasMany(Favorite::class);
+        return $this->belongsToMany(Vacancy::class, 'favorite_vacancies', 'user_id', 'vacancy_id')
+            ->withTimestamps();
     }
 
     public function vacancyViews()

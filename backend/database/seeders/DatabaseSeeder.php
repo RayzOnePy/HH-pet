@@ -12,11 +12,11 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        // 1. Убедимся, что справочники заполнены
         $this->call([
             RoleSeeder::class,
             CompanyRoleSeeder::class,
             EducationDegreeSeeder::class,
+            WorkScheduleSeeder::class,
             TestUserSeeder::class
         ]);
     }

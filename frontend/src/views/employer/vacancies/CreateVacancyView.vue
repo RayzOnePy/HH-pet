@@ -124,7 +124,6 @@ const submitForm = async () => {
   loading.value = true
   errors.value = {}
 
-  // Очищаем пустые значения
   const data = {
     ...form,
     salary_from: form.salary_from ? Number(form.salary_from) : null,

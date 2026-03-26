@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\DictionaryController;
+use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\VacancyController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +14,15 @@ Route::get('/test', function () {
 });
 
 // ==================== ПУБЛИЧНЫЕ МАРШРУТЫ ====================
+
+// Справочники
+Route::prefix('dictionaries')->group(function () {
+    Route::get('/education-degrees', [DictionaryController::class, 'educationDegrees']);
+    Route::get('/employment-types', [DictionaryController::class, 'employmentTypes']);
+    Route::get('/work-schedules', [DictionaryController::class, 'workSchedules']);
+});
+
+// Авторизация
 Route::prefix('auth')->group(function () {
     Route::post('/send-verification', [AuthController::class, 'sendVerification']);
     Route::post('/check-verification-code', [AuthController::class, 'checkVerificationCode']);
@@ -20,8 +31,14 @@ Route::prefix('auth')->group(function () {
 });
 
 // Публичные маршруты вакансий
-Route::get('/vacancies', [VacancyController::class, 'index']);
-Route::get('/vacancies/{vacancy}', [VacancyController::class, 'show']);
+Route::middleware('auth.optional')->group(function () {
+    Route::get('/vacancies', [VacancyController::class, 'index']);
+    Route::get('/vacancies/{vacancy}', [VacancyController::class, 'show']);
+});
+
+// Публичные маршруты резюме
+Route::get('/resumes', [ResumeController::class, 'index']);
+Route::get('/resumes/{resume}', [ResumeController::class, 'show']);
 
 // Публичные маршруты компаний
 Route::get('/companies', [CompanyController::class, 'index']);
@@ -51,5 +68,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/vacancies/{vacancy}', [VacancyController::class, 'destroy']);
         Route::patch('/vacancies/{vacancy}/toggle-status', [VacancyController::class, 'toggleStatus']);
         Route::patch('/vacancies/{vacancy}/restore', [VacancyController::class, 'restore']);
+    });
+
+    // ===== МАРШРУТЫ ДЛЯ СОИСКАТЕЛЯ =====
+    Route::prefix('applicant')->group(function () {
+
+        // Резюме
+        Route::get('/resume', [ResumeController::class, 'myResume']);
+        Route::post('/resume', [ResumeController::class, 'store']);
+        Route::put('/resume', [ResumeController::class, 'update']);
+        Route::patch('/resume/toggle-active', [ResumeController::class, 'toggleActive']);
+
+        // Избранные вакансии
+        Route::get('/favorites', [VacancyController::class, 'favorites']);
+        Route::post('/favorites/{vacancy}', [VacancyController::class, 'addToFavorites']);
+        Route::delete('/favorites/{vacancy}', [VacancyController::class, 'removeFromFavorites']);
     });
 });

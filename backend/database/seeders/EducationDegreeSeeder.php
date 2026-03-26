@@ -1,5 +1,4 @@
 <?php
-// database/seeders/EducationDegreeSeeder.php
 
 namespace Database\Seeders;
 

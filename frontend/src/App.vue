@@ -51,7 +51,6 @@ const authStore = useAuthStore()
 const showAuthModal = ref(false)
 const authModalMode = ref('login')
 
-// Используем данные из store
 const user = computed(() => authStore.user)
 
 onMounted(() => {
@@ -73,12 +72,10 @@ const closeAuthModal = () => {
 }
 
 const handleLoginSuccess = (userData) => {
-  // Данные уже в store, просто закрываем модалку
   closeAuthModal()
 }
 
 const handleRegisterSuccess = (userData) => {
-  // Данные уже в store, просто закрываем модалку
   closeAuthModal()
 }
 
@@ -88,7 +85,6 @@ const handleLogout = async () => {
 </script>
 
 <style>
-/* Глобальные стили */
 * {
   margin: 0;
   padding: 0;
@@ -105,7 +101,6 @@ body {
   position: relative;
 }
 
-/* Красивый фоновый градиент */
 body::before {
   content: '';
   position: fixed;
@@ -232,7 +227,6 @@ body::after {
   color: var(--color-primary);
 }
 
-/* Анимация перехода между страницами */
 .page-enter-active,
 .page-leave-active {
   transition: opacity 0.3s ease, transform 0.3s ease;
