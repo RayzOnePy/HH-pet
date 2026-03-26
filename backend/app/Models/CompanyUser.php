@@ -7,9 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
- * @method static \Illuminate\Database\Eloquent\Builder<static>|CompanyUser newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|CompanyUser newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|CompanyUser query()
  * @mixin \Eloquent
  */
 class CompanyUser extends Pivot

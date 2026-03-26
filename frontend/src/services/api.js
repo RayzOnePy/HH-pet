@@ -8,7 +8,6 @@ const api = axios.create({
   }
 })
 
-// Добавляем токен к каждому запросу
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('auth_token')
   if (token) {
@@ -17,14 +16,13 @@ api.interceptors.request.use(config => {
   return config
 })
 
-// Интерсептор для обработки ошибок
 api.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401) {
-      // Если неавторизован - чистим localStorage
       localStorage.removeItem('auth_token')
       localStorage.removeItem('user')
+      window.location.href = '/login'
     }
 
     if (error.response) {

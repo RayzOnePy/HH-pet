@@ -7,20 +7,12 @@
       </router-link>
     </div>
 
-    <form class="company-form" @submit.prevent="saveCompany">
-      <!-- Логотип -->
-      <div class="form-group">
-        <label>Логотип компании</label>
-        <div class="logo-upload">
-          <div class="logo-preview">
-            <span>🏢</span>
-          </div>
-          <button type="button" class="btn-outline">
-            Загрузить логотип
-          </button>
-        </div>
-      </div>
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Загрузка...</p>
+    </div>
 
+    <form v-else class="company-form" @submit.prevent="updateCompany">
       <div class="form-group">
         <label>Название компании <span class="required">*</span></label>
         <input
@@ -28,88 +20,57 @@
           type="text"
           placeholder="ООО 'ТехноКорп'"
           class="form-input"
+          :class="{ error: errors.name }"
+          required
         >
+        <span v-if="errors.name" class="error-text">{{ errors.name }}</span>
       </div>
 
       <div class="form-group">
-        <label>Описание компании</label>
+        <label>Описание компании <span class="required">*</span></label>
         <textarea
           v-model="form.description"
           rows="6"
-          placeholder="Расскажите о компании..."
+          placeholder="Расскажите о своей компании..."
           class="form-textarea"
+          :class="{ error: errors.description }"
+          required
         ></textarea>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Город</label>
-          <input
-            v-model="form.city"
-            type="text"
-            placeholder="Москва"
-            class="form-input"
-          >
-        </div>
-        <div class="form-group">
-          <label>Количество сотрудников</label>
-          <select v-model="form.employee_count" class="form-select">
-            <option value="1-10">1-10</option>
-            <option value="11-50">11-50</option>
-            <option value="51-100">51-100</option>
-            <option value="101-500">101-500</option>
-            <option value="500+">500+</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Email для связи</label>
-          <input
-            v-model="form.email"
-            type="email"
-            placeholder="hr@company.ru"
-            class="form-input"
-          >
-        </div>
-        <div class="form-group">
-          <label>Телефон</label>
-          <input
-            v-model="form.phone"
-            type="tel"
-            placeholder="+7 (495) 123-45-67"
-            class="form-input"
-          >
-        </div>
+        <span v-if="errors.description" class="error-text">{{ errors.description }}</span>
       </div>
 
       <div class="form-group">
-        <label>Сайт</label>
-        <input
-          v-model="form.website"
-          type="url"
-          placeholder="https://www.company.ru"
-          class="form-input"
-        >
-      </div>
-
-      <div class="form-group">
-        <label>Год основания</label>
-        <input
-          v-model="form.founded_year"
-          type="number"
-          placeholder="2015"
-          class="form-input"
-        >
+        <label>Логотип компании</label>
+        <div class="logo-upload">
+          <div class="logo-preview">
+            <img v-if="previewUrl" :src="previewUrl" alt="Логотип">
+            <span v-else>🏢</span>
+          </div>
+          <div class="logo-actions">
+            <input
+              type="file"
+              ref="fileInput"
+              accept="image/*"
+              @change="onFileChange"
+              style="display: none"
+            >
+            <button type="button" class="btn-outline" @click="triggerFileInput">
+              Заменить логотип
+            </button>
+            <span v-if="form.logo_file" class="file-name">
+              {{ form.logo_file.name }}
+            </span>
+          </div>
+        </div>
+        <span v-if="errors.logo" class="error-text">{{ errors.logo }}</span>
       </div>
 
       <div class="form-actions">
         <router-link to="/employer/company" class="btn-outline">
           Отмена
         </router-link>
-        <button type="submit" class="btn-primary">
-          Сохранить изменения
+        <button type="submit" class="btn-primary" :disabled="saving">
+          {{ saving ? 'Сохранение...' : 'Сохранить изменения' }}
         </button>
       </div>
     </form>
@@ -117,28 +78,103 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import api from '../../../services/api'
+
+const router = useRouter()
+const loading = ref(true)
+const saving = ref(false)
+const fileInput = ref(null)
+const previewUrl = ref('')
+const companyId = ref(null)
+const errors = ref({})
 
 const form = reactive({
-  name: 'ООО "ТехноКорп"',
-  description: 'IT-компания, специализирующаяся на разработке высоконагруженных проектов',
-  city: 'Москва',
-  employee_count: '51-100',
-  email: 'hr@techcorp.ru',
-  phone: '+7 (495) 123-45-67',
-  website: 'https://www.techcorp.ru',
-  founded_year: '2015'
+  name: '',
+  description: '',
+  logo_file: null
 })
 
-const saveCompany = () => {
-  console.log('Saving company:', form)
-  // Здесь будет сохранение
+const loadCompany = async () => {
+  try {
+    const response = await api.get('/employer/company')
+    const company = response.data.data
+
+    companyId.value = company.id
+    form.name = company.name
+    form.description = company.description
+
+    if (company.logo_url) {
+      previewUrl.value = company.logo_url
+    }
+  } catch (error) {
+    if (error.response?.status === 404) {
+      router.push('/employer/company')
+    } else {
+      console.error('Error loading company:', error)
+    }
+  } finally {
+    loading.value = false
+  }
 }
+
+const triggerFileInput = () => {
+  fileInput.value.click()
+}
+
+const onFileChange = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    form.logo_file = file
+    previewUrl.value = URL.createObjectURL(file)
+    errors.value.logo = null
+  }
+}
+
+const updateCompany = async () => {
+  saving.value = true
+  errors.value = {}
+
+  try {
+    const formData = new FormData()
+    formData.append('name', form.name)
+    formData.append('description', form.description)
+
+    if (form.logo_file) {
+      formData.append('logo', form.logo_file)
+    }
+
+    // Для PUT запроса с FormData нужно добавить _method
+    formData.append('_method', 'PUT')
+
+    const response = await api.post(`/companies/${companyId.value}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+
+    router.push('/employer/company')
+
+  } catch (error) {
+    if (error.response?.data?.errors) {
+      errors.value = error.response.data.errors
+    } else if (error.response?.data?.message) {
+      alert(error.response.data.message)
+    } else {
+      alert('Ошибка при обновлении компании')
+    }
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(() => {
+  loadCompany()
+})
 </script>
 
 <style scoped>
 .edit-company {
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -150,27 +186,51 @@ const saveCompany = () => {
   margin-bottom: 30px;
 }
 
+h1 {
+  color: var(--text-primary);
+  font-size: 28px;
+}
+
 .back-link {
   color: var(--color-primary);
   text-decoration: none;
 }
 
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--bg-card-gradient);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .company-form {
   background: var(--bg-card-gradient);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: 24px;
   padding: 30px;
 }
 
 .form-group {
-  margin-bottom: 20px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 label {
@@ -178,6 +238,7 @@ label {
   color: var(--text-secondary);
   margin-bottom: 8px;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .required {
@@ -185,28 +246,46 @@ label {
 }
 
 .form-input,
-.form-select,
 .form-textarea {
   width: 100%;
-  padding: 12px;
+  padding: 12px 16px;
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
   color: var(--text-primary);
   font-size: 16px;
+  transition: var(--transition-base);
 }
 
 .form-input:focus,
-.form-select:focus,
 .form-textarea:focus {
   border-color: var(--color-primary);
   outline: none;
+  box-shadow: var(--shadow-primary);
+}
+
+.form-input.error,
+.form-textarea.error {
+  border-color: var(--color-danger);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 150px;
+}
+
+.error-text {
+  display: block;
+  color: var(--color-danger);
+  font-size: 12px;
+  margin-top: 5px;
 }
 
 .logo-upload {
   display: flex;
-  align-items: center;
   gap: 30px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .logo-preview {
@@ -219,6 +298,24 @@ label {
   align-items: center;
   justify-content: center;
   font-size: 50px;
+  overflow: hidden;
+}
+
+.logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-name {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .form-actions {
@@ -226,26 +323,40 @@ label {
   gap: 15px;
   justify-content: flex-end;
   margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
 }
 
 .btn-primary {
   padding: 12px 30px;
   background: var(--gradient-primary);
   border: none;
-  border-radius: 30px;
+  border-radius: 40px;
   color: var(--text-dark);
   font-weight: 600;
   cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-primary-lg);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-outline {
   padding: 12px 30px;
   background: transparent;
   border: 1px solid var(--border-color);
-  border-radius: 30px;
+  border-radius: 40px;
   color: var(--text-secondary);
   text-decoration: none;
   cursor: pointer;
+  transition: var(--transition-base);
 }
 
 .btn-outline:hover {

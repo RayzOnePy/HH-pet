@@ -1,5 +1,6 @@
 FROM php:8.3-fpm
 
+# Установка зависимостей
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -8,24 +9,37 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    nodejs \
-    npm \
     libpq-dev \
-    supervisor
+    supervisor \
+    && docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
-
+# Установка Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-RUN mkdir -p /home/www-data/.config/psysh && \
-    chown -R 1000:1000 /home/www-data && \
-    echo "export HOME=/home/www-data" >> /etc/bash.bashrc
+# Установка Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
 
-ENV PSYSH_CONFIG_DIR=/tmp/psysh
+# Создание директорий и настройка прав
+RUN mkdir -p /var/www/backend && \
+    chown -R www-data:www-data /var/www/backend
 
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY backend/ /var/www/backend/
 
 WORKDIR /var/www/backend
+
+# Установка зависимостей Composer
+RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts
+
+RUN php artisan package:discover --ansi || true
+
+# Права на storage
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 9000
 

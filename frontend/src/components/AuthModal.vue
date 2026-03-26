@@ -318,7 +318,6 @@
       </button>
     </form>
 
-    <!-- Переключатель между формами -->
     <div class="auth-switch">
       <p>
         {{ isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
@@ -328,7 +327,6 @@
       </p>
     </div>
 
-    <!-- Общая ошибка (например, сервер не отвечает) -->
     <Transition name="fade-slide">
       <div v-if="generalError" class="error-message-general">
         {{ generalError }}
@@ -353,22 +351,18 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'login-success', 'register-success'])
 
-// Подключаем store
 const authStore = useAuthStore()
 
-// Общие состояния
 const isLogin = ref(props.initialMode === 'login')
 const loading = ref(false)
 const loginLoading = ref(false)
 const generalError = ref('')
 const errors = ref({})
 
-// Состояния для показа паролей
 const showPassword = ref(false)
 const showPasswordConfirm = ref(false)
 const showLoginPassword = ref(false)
 
-// Данные для регистрации
 const step = ref(1)
 const selectedRole = ref(null)
 const formData = ref({
@@ -380,20 +374,17 @@ const formData = ref({
   password_confirmation: ''
 })
 
-// Данные для входа
 const loginForm = ref({
   email: '',
   password: '',
   remember: false
 })
 
-// Код подтверждения
 const verificationCode = ref(['', '', '', '', '', ''])
 const codeInputs = ref([])
 const timer = ref(0)
 let timerInterval = null
 
-// Вычисляемые свойства
 const modalTitle = computed(() => {
   if (isLogin.value) return 'Вход'
   switch (step.value) {
@@ -420,7 +411,6 @@ const isPasswordValid = computed(() => {
     formData.value.password === formData.value.password_confirmation
 })
 
-// Оценка сложности пароля
 const strengthPercentage = computed(() => {
   const pass = formData.value.password
   if (!pass) return 0
@@ -451,7 +441,6 @@ const strengthText = computed(() => {
   return 'Надёжный'
 })
 
-// Методы
 const clearTimer = () => {
   clearInterval(timerInterval)
   timer.value = 0
@@ -487,13 +476,11 @@ const handleClose = () => {
   emit('close')
 }
 
-// Отправка кода подтверждения
 const sendVerificationCode = async () => {
   errors.value = {}
   generalError.value = ''
   loading.value = true
 
-  // Базовая валидация на фронте
   if (!formData.value.first_name || !formData.value.last_name || !formData.value.email) {
     generalError.value = 'Заполните все обязательные поля'
     loading.value = false
@@ -511,13 +498,11 @@ const sendVerificationCode = async () => {
 
     const response = await api.post('/auth/send-verification', requestData)
 
-    // Успешная отправка - переходим на шаг 3 и запускаем таймер на 60 секунд
     step.value = 3
     startTimer(60)
 
   } catch (error) {
     if (error.errors) {
-      // Ошибки валидации от Laravel
       const formattedErrors = {}
       Object.keys(error.errors).forEach(field => {
         formattedErrors[field] = error.errors[field][0]
@@ -525,12 +510,10 @@ const sendVerificationCode = async () => {
       errors.value = formattedErrors
 
     } else if (error.data?.seconds) {
-      // Бэкенд вернул 429 с количеством секунд ожидания
       generalError.value = error.message || `Повторная отправка через ${error.data.seconds} секунд`
       startTimer(error.data.seconds)
 
     } else if (error.message) {
-      // Другие ошибки с сообщением
       generalError.value = error.message
     } else {
       generalError.value = 'Ошибка при отправке кода'
@@ -540,7 +523,6 @@ const sendVerificationCode = async () => {
   }
 }
 
-// Проверка кода
 const verifyCode = async () => {
   errors.value = {}
   generalError.value = ''
@@ -573,7 +555,6 @@ const verifyCode = async () => {
   }
 }
 
-// Создание пользователя
 const createUser = async () => {
   errors.value = {}
   generalError.value = ''
@@ -602,7 +583,6 @@ const createUser = async () => {
   }
 }
 
-// Вход в систему
 const handleLogin = async (skipRedirect = false) => {
   errors.value = {}
   generalError.value = ''
@@ -628,7 +608,6 @@ const handleLogin = async (skipRedirect = false) => {
   }
 }
 
-// Повторная отправка кода
 const resendCode = async () => {
   if (timer.value > 0) {
     generalError.value = `Подождите ${timer.value} секунд перед повторной отправкой`
@@ -637,7 +616,6 @@ const resendCode = async () => {
   await sendVerificationCode()
 }
 
-// Таймер для повторной отправки
 const startTimer = (seconds) => {
   timer.value = seconds
   clearInterval(timerInterval)
@@ -650,7 +628,6 @@ const startTimer = (seconds) => {
   }, 1000)
 }
 
-// Обработка ввода кода
 const handleCodeInput = (index, event) => {
   if (event.target.value && index < 5) {
     codeInputs.value[index + 1].focus()
@@ -674,13 +651,11 @@ const handleCodePaste = (event) => {
   }
 }
 
-// WATCH
 watch(() => props.initialMode, (newMode) => {
   isLogin.value = newMode === 'login'
   resetForm()
 }, {immediate: true})
 
-// Сброс при закрытии
 watch(() => props.show, (newVal) => {
   if (!newVal) {
     resetForm()
@@ -688,7 +663,6 @@ watch(() => props.show, (newVal) => {
   }
 })
 
-// Фокус на первый input кода при переходе на шаг 3
 watch(step, (newStep) => {
   if (newStep === 3) {
     nextTick(() => {
@@ -723,7 +697,6 @@ watch(step, (newStep) => {
   color: var(--color-primary);
 }
 
-/* Карточки выбора роли */
 .role-selection {
   display: flex;
   flex-direction: column;
@@ -802,7 +775,6 @@ watch(step, (newStep) => {
   font-size: var(--font-size-xs);
 }
 
-/* Формы */
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -860,7 +832,6 @@ watch(step, (newStep) => {
   box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
 }
 
-/* Password toggle */
 .password-wrapper {
   position: relative;
   width: 100%;
@@ -898,7 +869,6 @@ watch(step, (newStep) => {
   color: var(--color-primary);
 }
 
-/* Поля ввода кода */
 .verification-inputs {
   display: flex;
   gap: var(--spacing-xs);
@@ -930,7 +900,6 @@ watch(step, (newStep) => {
   animation: shake 0.3s ease;
 }
 
-/* Таймер */
 .timer {
   text-align: center;
   margin-bottom: var(--spacing-lg);
@@ -981,7 +950,6 @@ watch(step, (newStep) => {
   transform: rotate(180deg);
 }
 
-/* Сообщения об ошибках */
 .error-message-field {
   color: var(--color-danger);
   font-size: var(--font-size-xs);
@@ -1003,7 +971,6 @@ watch(step, (newStep) => {
   animation: slideIn 0.3s ease;
 }
 
-/* Кнопки */
 .form-actions {
   display: flex;
   gap: var(--spacing-md);
@@ -1073,7 +1040,6 @@ watch(step, (newStep) => {
   transform: none;
 }
 
-/* Опции формы */
 .form-options {
   display: flex;
   justify-content: space-between;
@@ -1111,7 +1077,6 @@ watch(step, (newStep) => {
   background-color: rgba(0, 255, 136, 0.1);
 }
 
-/* Индикатор сложности пароля */
 .password-strength {
   margin-top: var(--spacing-xs);
   margin-bottom: var(--spacing-md);
@@ -1151,7 +1116,6 @@ watch(step, (newStep) => {
   color: var(--text-secondary);
 }
 
-/* Переключатель между формами */
 .auth-switch {
   text-align: center;
   margin-top: var(--spacing-lg);
@@ -1183,7 +1147,6 @@ watch(step, (newStep) => {
   background-color: rgba(0, 255, 136, 0.1);
 }
 
-/* Анимации */
 @keyframes shake {
   0%, 100% {
     transform: translateX(0);

@@ -11,9 +11,8 @@ return new class extends Migration
         Schema::create('companies', function (Blueprint $table) {
             $table->id();
             $table->string('name')->nullable(false);
-            $table->string('slug')->nullable(false);
             $table->text('description')->nullable(false);
-            $table->string('logo_url')->nullable(false);
+            $table->string('logo_url')->nullable();
             $table->boolean('is_verified')->default(false);
             $table->timestamps();
         });

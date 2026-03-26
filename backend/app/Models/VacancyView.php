@@ -10,17 +10,22 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $vacancy_id
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @method static \Illuminate\Database\Eloquent\Builder<static>|VacancyView newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|VacancyView newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|VacancyView query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|VacancyView whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|VacancyView whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|VacancyView whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|VacancyView whereUserId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|VacancyView whereVacancyId($value)
  * @mixin \Eloquent
  */
 class VacancyView extends Model
 {
-    //
+    protected $fillable = [
+        'user_id',
+        'vacancy_id',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function vacancy()
+    {
+        return $this->belongsTo(Vacancy::class);
+    }
 }

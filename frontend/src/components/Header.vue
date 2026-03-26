@@ -29,7 +29,7 @@
           <router-link to="/applicant/responses" class="nav-link" active-class="active">
             Отклики
           </router-link>
-          <router-link to="/applicant/vacancies/favorites" class="nav-link" active-class="active">
+          <router-link to="/applicant/favorites-vacancies" class="nav-link" active-class="active">
             Избранное
           </router-link>
           <router-link to="/applicant/resume" class="nav-link" active-class="active">
@@ -55,17 +55,6 @@
             Моя компания
           </router-link>
         </nav>
-
-        <!-- Поиск (для всех) -->
-        <div class="search">
-          <input
-              type="text"
-              placeholder="Поиск вакансий..."
-              class="search-input"
-              readonly
-          >
-          <button class="search-btn">🔍</button>
-        </div>
 
         <!-- Блок для авторизованных пользователей -->
         <div v-if="user" class="user-actions">
@@ -143,7 +132,6 @@ const handleLogout = () => {
   emit('logout')
 }
 
-// Закрытие меню при клике вне
 const handleClickOutside = (event) => {
   if (!event.target.closest('.user-menu')) {
     showUserMenu.value = false
@@ -245,56 +233,6 @@ onUnmounted(() => window.removeEventListener('click', handleClickOutside))
   box-shadow: var(--shadow-primary);
 }
 
-/* Поиск */
-.search {
-  display: flex;
-  align-items: center;
-  position: relative;
-  min-width: 250px;
-}
-
-.search-input {
-  width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  padding-right: 40px;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-full);
-  font-size: var(--font-size-sm);
-  transition: var(--transition-base);
-  color: var(--text-primary);
-}
-
-.search-input:focus {
-  border-color: var(--color-primary);
-  background-color: var(--bg-primary);
-  box-shadow: var(--shadow-primary);
-  outline: none;
-}
-
-.search-input::placeholder {
-  color: var(--text-muted);
-  opacity: 0.7;
-}
-
-.search-input[readonly] {
-  cursor: default;
-  background-color: var(--bg-tertiary);
-}
-
-.search-btn {
-  position: absolute;
-  right: var(--spacing-xs);
-  background: none;
-  border: none;
-  padding: var(--spacing-xs);
-  cursor: default;
-  font-size: 18px;
-  opacity: 0.7;
-  color: var(--text-secondary);
-}
-
-/* Блок действий пользователя */
 .user-actions {
   display: flex;
   align-items: center;

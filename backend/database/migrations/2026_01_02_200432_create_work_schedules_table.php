@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('work_schedules', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->tinyInteger('sort')->default(0);
             $table->timestamps();
         });
     }

@@ -1,426 +1,679 @@
 <template>
   <div class="vacancy-page">
-    <div class="back-nav">
-      <router-link to="/applicant/vacancies" class="back-link">
-        ← Вернуться к поиску
-      </router-link>
-    </div>
+    <div class="container">
+      <!-- Кнопка назад -->
+      <button class="back-btn" @click="goBack">
+        ← Назад к списку
+      </button>
 
-    <div class="vacancy-card detailed">
-      <div class="vacancy-header">
-        <div>
-          <h1>Senior Frontend Developer</h1>
-          <div class="company-large">
-            <span class="company-logo">🏢</span>
-            <span>TechCorp</span>
-            <span class="badge">IT, 50-100 сотрудников</span>
-          </div>
-        </div>
-        <div class="salary-large">от 250 000 ₽</div>
+      <!-- Состояние загрузки -->
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Загрузка вакансии...</p>
       </div>
 
-      <div class="vacancy-actions">
-        <button class="btn-primary btn-large" @click="showResponseModal = true">
-          ✉️ Откликнуться
-        </button>
-        <button class="btn-outline btn-large" @click="toggleFavorite">
-          {{ isFavorite ? '⭐ В избранном' : '☆ В избранное' }}
-        </button>
-      </div>
-
-      <div class="vacancy-details">
-        <div class="detail-item">
-          <span class="detail-icon">📍</span>
-          <div>
-            <div class="detail-label">Город</div>
-            <div class="detail-value">Москва</div>
-          </div>
-        </div>
-        <div class="detail-item">
-          <span class="detail-icon">💼</span>
-          <div>
-            <div class="detail-label">Опыт работы</div>
-            <div class="detail-value">3-6 лет</div>
-          </div>
-        </div>
-        <div class="detail-item">
-          <span class="detail-icon">⏰</span>
-          <div>
-            <div class="detail-label">График</div>
-            <div class="detail-value">Полный день, удаленно</div>
-          </div>
-        </div>
-        <div class="detail-item">
-          <span class="detail-icon">📅</span>
-          <div>
-            <div class="detail-label">Опубликовано</div>
-            <div class="detail-value">19 марта 2026</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <h2>Описание вакансии</h2>
-        <p class="description-text">
-          Мы ищем опытного Frontend разработчика для работы над крупным проектом в сфере финтеха.
-          Наша команда занимается разработкой высоконагруженных систем, и нам нужен специалист,
-          который поможет улучшить существующие решения и создавать новые.
-        </p>
-      </div>
-
-      <div class="section">
-        <h2>Требования</h2>
-        <ul class="requirements-list">
-          <li>Опыт работы с Vue.js от 3 лет</li>
-          <li>Хорошее знание TypeScript</li>
-          <li>Опыт работы с Pinia/Vuex</li>
-          <li>Понимание принципов REST API</li>
-          <li>Опыт оптимизации производительности</li>
-        </ul>
-      </div>
-
-      <div class="section">
-        <h2>Условия работы</h2>
-        <ul class="conditions-list">
-          <li>Удаленная работа или офис в Москве</li>
-          <li>Гибкий график</li>
-          <li>Конкурентная зарплата</li>
-          <li>ДМС со стоматологией</li>
-          <li>Обучение за счет компании</li>
-        </ul>
-      </div>
-
-      <div class="section">
-        <h2>Ключевые навыки</h2>
-        <div class="skills-list">
-          <span class="skill-tag">Vue.js</span>
-          <span class="skill-tag">TypeScript</span>
-          <span class="skill-tag">Pinia</span>
-          <span class="skill-tag">Vite</span>
-          <span class="skill-tag">Jest</span>
-        </div>
-      </div>
-
-      <div class="company-section">
-        <h2>О компании</h2>
-        <div class="company-profile">
-          <div class="company-logo-large">🏢</div>
-          <div class="company-info">
-            <h3>TechCorp</h3>
-            <p>IT-компания, специализирующаяся на разработке высоконагруженных проектов в сфере финтеха и e-commerce.</p>
-            <div class="company-meta">
-              <span>📍 Москва</span>
-              <span>👥 50-100 сотрудников</span>
-              <span>🌐 www.techcorp.ru</span>
+      <!-- Вакансия -->
+      <div v-else-if="vacancy" class="vacancy-card">
+        <!-- Хедер -->
+        <div class="vacancy-header">
+          <div class="vacancy-title-section">
+            <h1>{{ vacancy.title }}</h1>
+            <div class="company-info">
+              <span class="company-name">{{ vacancy.company?.name || 'Компания не указана' }}</span>
+              <span v-if="vacancy.company?.is_verified" class="verified-badge">✓ Проверено</span>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Модалка отклика -->
-    <Transition name="fade">
-      <div v-if="showResponseModal" class="modal-overlay" @click.self="showResponseModal = false">
-        <div class="modal-container">
-          <h3>Отклик на вакансию</h3>
-
-          <div class="response-form">
-            <div class="form-group">
-              <label>Ваше резюме</label>
-              <select v-model="selectedResume" class="form-select">
-                <option value="1">Frontend Developer (актуальное)</option>
-                <option value="2">Vue.js Developer</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Сопроводительное письмо (необязательно)</label>
-              <textarea
-                v-model="coverLetter"
-                rows="4"
-                placeholder="Расскажите, почему вы подходите на эту вакансию..."
-                class="form-textarea"
-              ></textarea>
-            </div>
-          </div>
-
-          <div class="modal-actions">
-            <button class="btn-outline" @click="showResponseModal = false">
-              Отмена
+          <div class="vacancy-actions">
+            <button
+              class="action-btn favorite"
+              :class="{ active: vacancy.is_favorite }"
+              @click="toggleFavorite"
+              :disabled="favoriteLoading"
+            >
+              <span v-if="favoriteLoading" class="loading-spinner-small"></span>
+              <span v-else>{{ vacancy.is_favorite ? '⭐ В избранном' : '☆ В избранное' }}</span>
             </button>
-            <button class="btn-primary" @click="sendResponse">
-              Отправить отклик
+            <button
+              class="action-btn respond"
+              :class="{ active: vacancy.has_responded }"
+              @click="respondToVacancy"
+              :disabled="respondLoading || vacancy.has_responded"
+            >
+              <span v-if="respondLoading" class="loading-spinner-small"></span>
+              <span v-else>{{ vacancy.has_responded ? '✓ Отклик отправлен' : '📨 Откликнуться' }}</span>
             </button>
           </div>
         </div>
+
+        <!-- Зарплата -->
+        <div class="salary-block">
+          <div class="salary">{{ formatSalary(vacancy.salary_from, vacancy.salary_to) }}</div>
+        </div>
+
+        <!-- Информационная сетка -->
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-icon">📍</span>
+            <div>
+              <div class="info-label">Город</div>
+              <div class="info-value">{{ vacancy.city || 'Не указан' }}</div>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">💼</span>
+            <div>
+              <div class="info-label">Опыт работы</div>
+              <div class="info-value">{{ getExperienceText(vacancy.experience) }}</div>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">📅</span>
+            <div>
+              <div class="info-label">Дата публикации</div>
+              <div class="info-value">{{ formatDateFull(vacancy.created_at) }}</div>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">👁️</span>
+            <div>
+              <div class="info-label">Просмотры</div>
+              <div class="info-value">{{ vacancy.views_count || 0 }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- График работы -->
+        <div v-if="vacancy.work_schedules?.length" class="section">
+          <h3>График работы</h3>
+          <div class="tags">
+            <span v-for="schedule in vacancy.work_schedules" :key="schedule.id" class="tag">
+              {{ schedule.name }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Описание вакансии -->
+        <div class="section">
+          <h3>Описание вакансии</h3>
+          <div class="description" v-html="formattedDescription"></div>
+        </div>
+
+        <!-- Информация о компании -->
+        <div v-if="vacancy.company" class="company-section">
+          <h3>О компании</h3>
+          <div class="company-info-block">
+            <div class="company-logo">{{ vacancy.company.logo_url ? '🖼️' : '🏢' }}</div>
+            <div class="company-details">
+              <h4>{{ vacancy.company.name }}</h4>
+              <p v-if="vacancy.company.description">{{ truncateText(vacancy.company.description, 200) }}</p>
+              <router-link :to="`/companies/${vacancy.company.id}`" class="company-link">
+                Подробнее о компании →
+              </router-link>
+            </div>
+          </div>
+        </div>
       </div>
-    </Transition>
+
+      <!-- Вакансия не найдена -->
+      <div v-else class="not-found">
+        <div class="empty-icon">🔍</div>
+        <h3>Вакансия не найдена</h3>
+        <p>Возможно, она была удалена или скрыта</p>
+        <router-link to="/applicant/vacancies" class="btn-primary">
+          Вернуться к списку
+        </router-link>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import api from '../../../services/api'
+import { useAuthStore } from '../../../stores/auth'
 
-const isFavorite = ref(false)
-const showResponseModal = ref(false)
-const selectedResume = ref('1')
-const coverLetter = ref('')
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
 
-const toggleFavorite = () => {
-  isFavorite.value = !isFavorite.value
+const vacancy = ref(null)
+const loading = ref(false)
+const favoriteLoading = ref(false)
+const respondLoading = ref(false)
+
+const formatSalary = (from, to) => {
+  if (!from && !to) return 'з/п не указана'
+  if (from && to) return `${from.toLocaleString()} — ${to.toLocaleString()} ₽`
+  if (from) return `от ${from.toLocaleString()} ₽`
+  if (to) return `до ${to.toLocaleString()} ₽`
+  return 'з/п не указана'
 }
 
-const sendResponse = () => {
-  console.log('Response sent:', {
-    resumeId: selectedResume.value,
-    coverLetter: coverLetter.value
+const getExperienceText = (experience) => {
+  const map = {
+    'no': 'Нет опыта',
+    '1-3': '1-3 года',
+    '3-6': '3-6 лет',
+    '6+': 'Более 6 лет'
+  }
+  return map[experience] || 'Не указан'
+}
+
+const formatDateFull = (date) => {
+  if (!date) return ''
+  const d = new Date(date)
+  return d.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
   })
-  showResponseModal.value = false
 }
+
+const truncateText = (text, length) => {
+  if (!text) return ''
+  if (text.length <= length) return text
+  return text.substring(0, length) + '...'
+}
+
+const formattedDescription = computed(() => {
+  if (!vacancy.value?.description) return ''
+  return formatMarkdown(vacancy.value.description)
+})
+
+const formatMarkdown = (text) => {
+  if (!text) return ''
+
+  let formatted = text
+    // Заголовки
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+    // Жирный текст
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Курсив
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // Списки
+    .replace(/^\s*-\s(.*)$/gim, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+    // Номера строк
+    .replace(/^\s*\d+\.\s(.*)$/gim, '<li>$1</li>')
+    // Переносы строк
+    .replace(/\n/g, '<br>')
+
+  return formatted
+}
+
+const fetchVacancy = async () => {
+  const id = route.params.id
+  if (!id) return
+
+  loading.value = true
+
+  try {
+    const response = await api.get(`/vacancies/${id}`)
+    vacancy.value = response.data.data
+  } catch (error) {
+    console.error('Error fetching vacancy:', error)
+    if (error.response?.status === 404) {
+      vacancy.value = null
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+const toggleFavorite = async () => {
+  if (!authStore.isLoggedIn) {
+    alert('Войдите в систему, чтобы добавлять в избранное')
+    return
+  }
+
+  favoriteLoading.value = true
+
+  try {
+    if (vacancy.value.is_favorite) {
+      await api.delete(`/applicant/favorites/${vacancy.value.id}`)
+      vacancy.value.is_favorite = false
+    } else {
+      await api.post(`/applicant/favorites/${vacancy.value.id}`)
+      vacancy.value.is_favorite = true
+    }
+  } catch (error) {
+    console.error('Error toggling favorite:', error)
+    alert(error.response?.data?.message || 'Ошибка при добавлении в избранное')
+  } finally {
+    favoriteLoading.value = false
+  }
+}
+
+const respondToVacancy = async () => {
+  if (!authStore.isLoggedIn) {
+    alert('Войдите в систему, чтобы откликнуться на вакансию')
+    return
+  }
+
+  if (vacancy.value.has_responded) {
+    alert('Вы уже откликнулись на эту вакансию')
+    return
+  }
+
+  respondLoading.value = true
+
+  try {
+    await api.post(`/applicant/responses/${vacancy.value.id}`)
+    vacancy.value.has_responded = true
+    alert('Отклик успешно отправлен!')
+  } catch (error) {
+    console.error('Error responding to vacancy:', error)
+    alert(error.response?.data?.message || 'Ошибка при отправке отклика')
+  } finally {
+    respondLoading.value = false
+  }
+}
+
+const goBack = () => {
+  router.back()
+}
+
+onMounted(() => {
+  fetchVacancy()
+})
 </script>
 
 <style scoped>
 .vacancy-page {
-  max-width: 800px;
+  min-height: 100vh;
+  padding: 40px 0;
+}
+
+.container {
+  max-width: 900px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 0 20px;
 }
 
-.back-nav {
-  margin-bottom: 20px;
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 24px;
+  padding: 8px 0;
+  transition: var(--transition-base);
 }
 
-.back-link {
+.back-btn:hover {
   color: var(--color-primary);
-  text-decoration: none;
 }
 
-.vacancy-card.detailed {
-  background: var(--bg-card-gradient);
-  border: 1px solid var(--border-color);
+.loading-state {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-spinner-small {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+}
+
+/* Карточка вакансии */
+.vacancy-card {
+  background: var(--bg-card);
   border-radius: 24px;
-  padding: 30px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+/* Хедер */
 .vacancy-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
-.vacancy-header h1 {
+.vacancy-title-section h1 {
   color: var(--text-primary);
-  font-size: 32px;
-  margin-bottom: 10px;
+  font-size: 28px;
+  margin: 0 0 12px 0;
 }
 
-.company-large {
+.company-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.company-name {
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.verified-badge {
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--color-primary);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Кнопки действий */
+.vacancy-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.action-btn {
+  padding: 10px 20px;
+  border-radius: 40px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-base);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.action-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.action-btn.favorite.active {
+  background: rgba(255, 193, 7, 0.1);
+  border-color: #ffc107;
+  color: #ffc107;
+}
+
+.action-btn.respond {
+  background: var(--gradient-primary);
+  border: none;
+  color: var(--text-dark);
+}
+
+.action-btn.respond.active {
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.action-btn.respond:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Зарплата */
+.salary-block {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.salary {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Информационная сетка */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+}
+
+.info-item {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.company-logo {
+.info-icon {
   font-size: 24px;
 }
 
-.badge {
-  padding: 4px 12px;
-  background: var(--bg-secondary);
-  border-radius: 30px;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.salary-large {
-  color: var(--color-primary);
-  font-size: 28px;
-  font-weight: 600;
-}
-
-.vacancy-actions {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 30px;
-}
-
-.btn-large {
-  padding: 14px 32px;
-  font-size: 16px;
-}
-
-.vacancy-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  padding: 20px;
-  background: var(--bg-secondary);
-  border-radius: 16px;
-  margin-bottom: 30px;
-}
-
-.detail-item {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.detail-icon {
-  font-size: 24px;
-}
-
-.detail-label {
-  color: var(--text-secondary);
+.info-label {
   font-size: 12px;
+  color: var(--text-secondary);
   margin-bottom: 2px;
 }
 
-.detail-value {
-  color: var(--text-primary);
+.info-value {
+  font-size: 16px;
   font-weight: 500;
-}
-
-.section {
-  margin-bottom: 30px;
-}
-
-.section h2 {
   color: var(--text-primary);
-  font-size: 20px;
-  margin-bottom: 15px;
 }
 
-.description-text {
-  color: var(--text-secondary);
-  line-height: 1.8;
+/* Секции */
+.section {
+  margin-bottom: 32px;
 }
 
-.requirements-list,
-.conditions-list {
-  color: var(--text-secondary);
-  padding-left: 20px;
-  line-height: 1.8;
+.section h3 {
+  color: var(--text-primary);
+  font-size: 18px;
+  margin-bottom: 16px;
 }
 
-.requirements-list li,
-.conditions-list li {
-  margin-bottom: 8px;
-}
-
-.skills-list {
+/* Теги */
+.tags {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.skill-tag {
-  padding: 8px 16px;
+.tag {
+  padding: 6px 14px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 30px;
-  color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
+/* Описание */
+.description {
+  color: var(--text-secondary);
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+.description h1 {
+  font-size: 20px;
+  margin: 16px 0 12px;
+  color: var(--text-primary);
+}
+
+.description h2 {
+  font-size: 18px;
+  margin: 14px 0 10px;
+  color: var(--text-primary);
+}
+
+.description h3 {
+  font-size: 16px;
+  margin: 12px 0 8px;
+  color: var(--text-primary);
+}
+
+.description ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.description li {
+  margin: 4px 0;
+}
+
+/* Компания */
 .company-section {
-  padding-top: 20px;
+  margin-top: 32px;
+  padding-top: 32px;
   border-top: 1px solid var(--border-color);
 }
 
-.company-profile {
-  display: flex;
-  gap: 30px;
-  align-items: center;
+.company-section h3 {
+  color: var(--text-primary);
+  font-size: 18px;
+  margin-bottom: 16px;
 }
 
-.company-logo-large {
-  width: 80px;
-  height: 80px;
+.company-info-block {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
   background: var(--bg-secondary);
+  border-radius: 16px;
+}
+
+.company-logo {
+  width: 64px;
+  height: 64px;
+  background: var(--bg-tertiary);
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
-  border: 2px solid var(--color-primary);
+  font-size: 32px;
+  flex-shrink: 0;
 }
 
-.company-info h3 {
+.company-details h4 {
   color: var(--text-primary);
-  margin-bottom: 10px;
+  font-size: 18px;
+  margin: 0 0 8px 0;
 }
 
-.company-info p {
+.company-details p {
   color: var(--text-secondary);
-  margin-bottom: 10px;
   line-height: 1.6;
+  margin-bottom: 12px;
 }
 
-.company-meta {
-  display: flex;
-  gap: 20px;
-  color: var(--text-secondary);
+.company-link {
+  color: var(--color-primary);
+  text-decoration: none;
   font-size: 14px;
 }
 
-/* Модальное окно */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+.company-link:hover {
+  text-decoration: underline;
 }
 
-.modal-container {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+/* Не найдено */
+.not-found {
+  text-align: center;
+  padding: 80px 20px;
+  background: var(--bg-card);
+  border: 2px dashed var(--border-color);
   border-radius: 24px;
-  padding: 30px;
-  max-width: 500px;
-  width: 90%;
 }
 
-.modal-container h3 {
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.not-found h3 {
   color: var(--text-primary);
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
-.response-form {
-  margin-bottom: 20px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
+.not-found p {
   color: var(--text-secondary);
-  margin-bottom: 8px;
-  font-size: 14px;
+  margin-bottom: 20px;
 }
 
-.form-select,
-.form-textarea {
-  width: 100%;
-  padding: 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-primary);
+.btn-primary {
+  padding: 12px 24px;
+  background: var(--gradient-primary);
+  border: none;
+  border-radius: 30px;
+  color: var(--text-dark);
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
 }
 
-.modal-actions {
-  display: flex;
-  gap: 15px;
-  justify-content: flex-end;
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-primary-lg);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .vacancy-page {
+    padding: 20px 0;
+  }
+
+  .vacancy-card {
+    padding: 20px;
+  }
+
+  .vacancy-header {
+    flex-direction: column;
+  }
+
+  .vacancy-actions {
+    width: 100%;
+  }
+
+  .action-btn {
+    flex: 1;
+    text-align: center;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .company-info-block {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .company-logo {
+    margin: 0 auto;
+  }
+
+  .salary {
+    font-size: 24px;
+  }
 }
 </style>
