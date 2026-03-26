@@ -13,6 +13,8 @@ class CompanyResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
+            'logo_url' => $this->logo_url,
+            'is_verified' => $this->is_verified,
         ];
     }
 }

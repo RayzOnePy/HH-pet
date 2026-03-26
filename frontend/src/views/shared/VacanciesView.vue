@@ -7,7 +7,6 @@
       </div>
     </div>
 
-    <!-- Поиск и фильтры -->
     <div class="search-section">
       <div class="search-box">
         <input
@@ -27,7 +26,6 @@
       </button>
     </div>
 
-    <!-- Фильтры -->
     <Transition name="slide">
       <div v-if="showFilters" class="filters-panel">
         <div class="filters-grid">
@@ -83,39 +81,21 @@
       </div>
     </Transition>
 
-    <!-- Состояние загрузки -->
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
       <p>Загрузка вакансий...</p>
     </div>
 
-    <!-- Список вакансий -->
     <div v-else-if="vacancies.length > 0" class="vacancies-list">
-      <div v-for="vacancy in vacancies" :key="vacancy.id" class="vacancy-card">
+      <div
+        v-for="vacancy in vacancies"
+        :key="vacancy.id"
+        class="vacancy-card"
+        @click="openVacancy(vacancy.id)"
+      >
         <div class="vacancy-header">
           <div class="vacancy-info">
-            <h3>
-              <a
-                :href="`/vacancies/${vacancy.id}`"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="vacancy-link"
-              >
-                {{ vacancy.title }}
-              </a>
-            </h3>
-            <div class="company-info">
-              <span class="company-icon">🏢</span>
-              <a
-                :href="`/companies/${vacancy.company?.id}`"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="company-link"
-              >
-                {{ vacancy.company?.name || 'Компания не указана' }}
-              </a>
-              <span v-if="vacancy.company?.is_verified" class="verified-badge">✓ Проверено</span>
-            </div>
+            <h3>{{ vacancy.title }}</h3>
           </div>
           <div class="salary">
             {{ formatSalary(vacancy.salary_from, vacancy.salary_to) }}
@@ -136,11 +116,25 @@
         </div>
 
         <div class="vacancy-footer">
+          <div class="company-info" @click.stop>
+            <span class="company-icon">🏢</span>
+            <a
+              :href="`/companies/${vacancy.company?.id}`"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="company-link"
+              @click.stop
+            >
+              {{ vacancy.company?.name || 'Компания не указана' }}
+            </a>
+            <span v-if="vacancy.company?.is_verified" class="verified-badge">✓ Проверено</span>
+          </div>
           <a
             :href="`/vacancies/${vacancy.id}`"
             target="_blank"
             rel="noopener noreferrer"
             class="btn-outline"
+            @click.stop
           >
             Подробнее →
           </a>
@@ -148,7 +142,6 @@
       </div>
     </div>
 
-    <!-- Пустое состояние -->
     <div v-else class="empty-state">
       <div class="empty-icon">🔍</div>
       <h3>Ничего не найдено</h3>
@@ -156,7 +149,6 @@
       <button class="btn-outline" @click="resetAll">Сбросить фильтры</button>
     </div>
 
-    <!-- Пагинация -->
     <div v-if="meta.last_page > 1" class="pagination">
       <button
         class="page-btn"
@@ -236,6 +228,10 @@ const visiblePages = computed(() => {
 
   return pages
 })
+
+const openVacancy = (id) => {
+  window.open(`/vacancies/${id}`, '_blank')
+}
 
 const fetchVacancies = async () => {
   loading.value = true
@@ -531,6 +527,7 @@ h1 {
   border-radius: 20px;
   padding: 24px;
   transition: var(--transition-base);
+  cursor: pointer;
 }
 
 .vacancy-card:hover {
@@ -543,57 +540,16 @@ h1 {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 15px;
 }
 
 .vacancy-info h3 {
-  margin: 0 0 8px 0;
-}
-
-.vacancy-link {
-  color: var(--text-primary);
-  text-decoration: none;
+  margin: 0;
   font-size: 20px;
   font-weight: 600;
-}
-
-.vacancy-link:hover {
-  color: var(--color-primary);
-}
-
-.company-info {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.company-icon {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.company-link {
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-size: 14px;
-  transition: var(--transition-base);
-}
-
-.company-link:hover {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
-.verified-badge {
-  background: rgba(0, 255, 136, 0.1);
-  color: var(--color-primary);
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
+  color: var(--text-primary);
 }
 
 .salary {
@@ -630,9 +586,45 @@ h1 {
 
 .vacancy-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   padding-top: 16px;
   border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.company-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.company-icon {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.company-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  transition: var(--transition-base);
+}
+
+.company-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.verified-badge {
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--color-primary);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .btn-outline {
@@ -732,7 +724,6 @@ h1 {
   cursor: not-allowed;
 }
 
-/* Анимации */
 .slide-enter-active,
 .slide-leave-active {
   transition: all 0.3s ease;
@@ -751,6 +742,7 @@ h1 {
 
   .vacancy-header {
     flex-direction: column;
+    margin-bottom: 16px;
   }
 
   .salary {
@@ -770,6 +762,15 @@ h1 {
   }
 
   .vacancy-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .company-info {
+    justify-content: center;
+  }
+
+  .btn-outline {
     justify-content: center;
   }
 

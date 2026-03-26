@@ -7,55 +7,33 @@
       </div>
     </div>
 
-    <!-- Состояние загрузки -->
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
       <p>Загрузка избранных вакансий...</p>
     </div>
 
-    <!-- Список избранных вакансий -->
     <div v-else-if="vacancies.length > 0" class="favorites-list">
-      <div v-for="vacancy in vacancies" :key="vacancy.id" class="vacancy-card">
+      <div
+        v-for="vacancy in vacancies"
+        :key="vacancy.id"
+        class="vacancy-card"
+        @click="openVacancy(vacancy.id)"
+      >
         <div class="vacancy-header">
           <div class="vacancy-info">
-            <h3>
-              <router-link :to="`/applicant/vacancies/${vacancy.id}`">
-                {{ vacancy.title }}
-              </router-link>
-            </h3>
-            <div class="company-name">
-              <span class="company-icon">🏢</span>
-              {{ vacancy.company?.name || 'Компания не указана' }}
-            </div>
+            <h3>{{ vacancy.title }}</h3>
           </div>
-          <button
-            class="favorite-btn active"
-            @click="removeFromFavorites(vacancy)"
-            :disabled="removingId === vacancy.id"
-            title="Удалить из избранного"
-          >
-            <span v-if="removingId === vacancy.id" class="loading-spinner-small"></span>
-            <span v-else>⭐</span>
-          </button>
+          <div class="salary">
+            {{ formatSalary(vacancy.salary_from, vacancy.salary_to) }}
+          </div>
         </div>
 
         <div class="vacancy-tags">
           <span class="tag">{{ getExperienceText(vacancy.experience) }}</span>
           <span class="tag">{{ vacancy.city || 'Город не указан' }}</span>
-          <span v-if="vacancy.employment_types?.length" class="tag">
-            {{ vacancy.employment_types.map(t => t.name).join(', ') }}
-          </span>
           <span v-if="vacancy.work_schedules?.length" class="tag">
-            {{ vacancy.work_schedules.map(s => s.name).join(', ') }}
+            🕒 {{ vacancy.work_schedules.map(s => s.name).join(', ') }}
           </span>
-        </div>
-
-        <div class="vacancy-salary">
-          {{ formatSalary(vacancy.salary_from, vacancy.salary_to) }}
-        </div>
-
-        <div class="vacancy-description">
-          {{ truncateText(vacancy.description, 120) }}
         </div>
 
         <div class="vacancy-meta">
@@ -66,12 +44,30 @@
         </div>
 
         <div class="vacancy-footer">
-          <div class="company-info">
-            <span class="company-logo">{{ vacancy.company?.logo_url ? '🖼️' : '🏢' }}</span>
-            <span>{{ vacancy.company?.name || 'Компания' }}</span>
+          <div class="company-info" @click.stop>
+            <span class="company-icon">🏢</span>
+            <a
+              :href="`/companies/${vacancy.company?.id}`"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="company-link"
+              @click.stop
+            >
+              {{ vacancy.company?.name || 'Компания не указана' }}
+            </a>
             <span v-if="vacancy.company?.is_verified" class="verified-badge">✓ Проверено</span>
           </div>
-          <div class="actions">
+          <div class="actions" @click.stop>
+            <button
+              class="icon-btn"
+              :class="{ active: true }"
+              @click="removeFromFavorites(vacancy)"
+              :disabled="removingId === vacancy.id"
+              title="Удалить из избранного"
+            >
+              <span v-if="removingId === vacancy.id" class="loading-spinner-small"></span>
+              <span v-else>⭐</span>
+            </button>
             <button class="btn-primary-small" @click="respondToVacancy(vacancy.id)">
               Откликнуться
             </button>
@@ -80,7 +76,6 @@
       </div>
     </div>
 
-    <!-- Пустое состояние -->
     <div v-else class="empty-state">
       <div class="empty-icon">⭐</div>
       <h3>У вас пока нет избранных вакансий</h3>
@@ -90,7 +85,6 @@
       </router-link>
     </div>
 
-    <!-- Пагинация -->
     <div v-if="totalPages > 1" class="pagination">
       <button
         class="page-btn"
@@ -152,6 +146,10 @@ const visiblePages = computed(() => {
   return pages
 })
 
+const openVacancy = (id) => {
+  window.open(`/applicant/vacancies/${id}`, '_blank')
+}
+
 const declension = (number, words) => {
   const cases = [2, 0, 1, 1, 1, 2]
   const index = (number % 100 > 4 && number % 100 < 20) ? 2 : cases[Math.min(number % 10, 5)]
@@ -186,12 +184,6 @@ const formatDate = (date) => {
   if (diff === 1) return 'вчера'
   if (diff < 7) return `${diff} дня назад`
   return d.toLocaleDateString('ru-RU')
-}
-
-const truncateText = (text, length) => {
-  if (!text) return ''
-  if (text.length <= length) return text
-  return text.substring(0, length) + '...'
 }
 
 const fetchFavorites = async () => {
@@ -371,6 +363,7 @@ h1 {
   border-radius: 20px;
   padding: 24px;
   transition: var(--transition-base);
+  cursor: pointer;
 }
 
 .vacancy-card:hover {
@@ -383,60 +376,23 @@ h1 {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 .vacancy-info h3 {
-  margin: 0 0 8px 0;
-}
-
-.vacancy-info h3 a {
-  color: var(--text-primary);
-  text-decoration: none;
+  margin: 0;
   font-size: 20px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
-.vacancy-info h3 a:hover {
+.salary {
   color: var(--color-primary);
-}
-
-.company-name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.company-icon {
-  font-size: 14px;
-}
-
-.favorite-btn {
-  background: none;
-  border: none;
-  font-size: 28px;
-  cursor: pointer;
-  transition: var(--transition-base);
-  padding: 4px;
-  min-width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.favorite-btn:hover:not(:disabled) {
-  transform: scale(1.1);
-}
-
-.favorite-btn.active {
-  color: #ffc107;
-}
-
-.favorite-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  font-size: 20px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .vacancy-tags {
@@ -453,20 +409,6 @@ h1 {
   border-radius: 20px;
   font-size: 12px;
   color: var(--text-secondary);
-}
-
-.vacancy-salary {
-  color: var(--color-primary);
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.vacancy-description {
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 16px;
-  font-size: 14px;
 }
 
 .vacancy-meta {
@@ -491,13 +433,25 @@ h1 {
 .company-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
-  font-size: 14px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.company-logo {
-  font-size: 20px;
+.company-icon {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.company-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  transition: var(--transition-base);
+}
+
+.company-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
 }
 
 .verified-badge {
@@ -513,6 +467,35 @@ h1 {
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: var(--transition-base);
+  padding: 4px;
+  min-width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover:not(:disabled) {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.icon-btn.active {
+  opacity: 1;
+  color: #ffc107;
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .btn-primary-small {
@@ -573,7 +556,10 @@ h1 {
 
   .vacancy-header {
     flex-direction: column;
-    gap: 12px;
+  }
+
+  .salary {
+    white-space: normal;
   }
 
   .vacancy-meta {

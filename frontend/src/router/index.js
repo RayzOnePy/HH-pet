@@ -31,6 +31,13 @@ const router = createRouter({
       meta: { title: 'Вакансия' }
     },
 
+    {
+      path: '/companies/:id',
+      name: 'company',
+      component: () => import('../views/shared/CompanyView.vue'),
+      meta: { title: 'Компания' }
+    },
+
     // РАБОТОДАТЕЛЬ
     {
       path: '/employer',
@@ -156,25 +163,30 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
+
+  if (!authStore.initialized) {
+    await authStore.init()
+  }
+
   const isAuthenticated = authStore.isLoggedIn
   const userRole = authStore.userRole
 
   document.title = `${to.meta.title || 'HHPet'} | HHPet`
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'home' })
+    next({name: 'home'})
     return
   }
 
   if (to.meta.requiresApplicant && (!isAuthenticated || userRole !== 'applicant')) {
-    next({ name: 'home' })
+    next({name: 'home'})
     return
   }
 
   if (to.meta.requiresEmployer && (!isAuthenticated || userRole !== 'employer')) {
-    next({ name: 'home' })
+    next({name: 'home'})
     return
   }
 

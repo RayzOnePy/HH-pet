@@ -37,8 +37,8 @@ class VacancyResource extends JsonResource
             'favorites_count' => $this->favorited_by_count ?? 0,
 
             'is_favorite' => $user ? $this->favoritedBy()->where('user_id', $user->id)->exists() : false,
-
             'has_responded' => $user ? $this->responses()->where('candidate_id', $user->id)->exists() : false,
+            'is_viewed' => $user ? $this->views()->where('user_id', $user->id)->exists() : false,
         ];
     }
 }
