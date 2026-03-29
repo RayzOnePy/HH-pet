@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('vacancy_id')->constrained('vacancies')->onDelete('restrict');
             $table->foreignId('candidate_id')->constrained('users')->onDelete('restrict');
-            $table->enum('status', ['pending', 'invited', 'rejected', 'accepted'])->default('pending');
+            $table->enum('status', ['pending', 'invited', 'rejected'])->default('pending');
             $table->timestamps();
 
             $table->unique(['vacancy_id', 'candidate_id']);

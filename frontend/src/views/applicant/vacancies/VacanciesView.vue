@@ -141,8 +141,13 @@
               <span v-if="favoriteLoading === vacancy.id" class="loading-spinner-small"></span>
               <span v-else>{{ vacancy.is_favorite ? '⭐' : '☆' }}</span>
             </button>
-            <button class="btn-primary-small" @click="respondToVacancy(vacancy.id)">
-              Откликнуться
+            <button
+              class="btn-primary-small"
+              :class="{ responded: vacancy.has_responded }"
+              @click="respondToVacancy(vacancy.id)"
+              :disabled="vacancy.has_responded"
+            >
+              {{ vacancy.has_responded ? 'Откликнулись' : 'Откликнуться' }}
             </button>
           </div>
         </div>
@@ -336,8 +341,12 @@ const respondToVacancy = async (vacancyId) => {
   }
 
   try {
-    await api.post('/applicant/responses', { vacancy_id: vacancyId })
+    await api.post(`/applicant/responses/${vacancyId}`)
     alert('Отклик успешно отправлен!')
+    const vacancy = vacancies.value.find(v => v.id === vacancyId)
+    if (vacancy) {
+      vacancy.has_responded = true
+    }
   } catch (error) {
     console.error('Error responding to vacancy:', error)
     alert(error.response?.data?.message || 'Ошибка при отправке отклика')
@@ -845,6 +854,18 @@ h1 {
 .slide-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+.btn-primary-small.responded {
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-primary-small.responded:hover {
+  transform: none;
+  box-shadow: none;
+  cursor: default;
 }
 
 @media (max-width: 768px) {

@@ -16,16 +16,7 @@ class VacancyController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $token = $request->bearerToken();
-        if ($token) {
-            try {
-                $user = Auth::guard('sanctum')->user();
-                if ($user) {
-                    Auth::guard('sanctum')->setUser($user);
-                    Auth::setUser($user);
-                }
-            } catch (\Exception $e) {}
-        }
+        $user = Auth::user();
 
         $query = Vacancy::with(['company', 'workSchedules'])
             ->withCount(['responses'])
@@ -75,6 +66,31 @@ class VacancyController extends Controller
 
         $vacancies = $query->paginate($request->get('per_page', 15));
 
+        if ($user) {
+            $vacancyIds = $vacancies->pluck('id')->toArray();
+
+            $favoriteIds = $user->favoriteVacancies()
+                ->whereIn('vacancy_id', $vacancyIds)
+                ->pluck('vacancy_id')
+                ->toArray();
+
+            $respondedIds = $user->vacancyResponses()
+                ->whereIn('vacancy_id', $vacancyIds)
+                ->pluck('vacancy_id')
+                ->toArray();
+
+            $viewedIds = $user->vacancyViews()
+                ->whereIn('vacancy_id', $vacancyIds)
+                ->pluck('vacancy_id')
+                ->toArray();
+
+            $vacancies->getCollection()->each(function ($vacancy) use ($favoriteIds, $respondedIds, $viewedIds) {
+                $vacancy->setAttribute('is_favorite', in_array($vacancy->id, $favoriteIds));
+                $vacancy->setAttribute('has_responded', in_array($vacancy->id, $respondedIds));
+                $vacancy->setAttribute('is_viewed', in_array($vacancy->id, $viewedIds));
+            });
+        }
+
         return response()->json([
             'data' => VacancyResource::collection($vacancies),
             'meta' => [
@@ -88,9 +104,17 @@ class VacancyController extends Controller
 
     public function show(Vacancy $vacancy): JsonResponse
     {
-        $vacancy->addView(Auth::user());
+        $user = Auth::user();
+
+        $vacancy->addView($user);
 
         $vacancy->load('company');
+
+        if ($user) {
+            $vacancy->setAttribute('is_favorite', $user->favoriteVacancies()->where('vacancy_id', $vacancy->id)->exists());
+            $vacancy->setAttribute('has_responded', $vacancy->responses()->where('candidate_id', $user->id)->exists());
+            $vacancy->setAttribute('is_viewed', $vacancy->views()->where('user_id', $user->id)->exists());
+        }
 
         return response()->json([
             'data' => new VacancyResource($vacancy)
@@ -213,7 +237,7 @@ class VacancyController extends Controller
 
         $query = Vacancy::where('company_id', $company->id)
             ->with('company')
-            ->withCount(['responses', 'favorites']);
+            ->withCount(['responses', 'favoritedBy']);
 
         $totalCount = (clone $query)->count();
         $activeCount = (clone $query)->where('status', 'active')->count();
@@ -287,6 +311,17 @@ class VacancyController extends Controller
         $favorites = $user->favoriteVacancies()
             ->with('company')
             ->paginate(15);
+
+        $vacancyIds = $favorites->pluck('id')->toArray();
+
+        $respondedIds = $user->vacancyResponses()
+            ->whereIn('vacancy_id', $vacancyIds)
+            ->pluck('vacancy_id')
+            ->toArray();
+
+        $favorites->getCollection()->each(function ($vacancy) use ($respondedIds) {
+            $vacancy->setAttribute('has_responded', in_array($vacancy->id, $respondedIds));
+        });
 
         return response()->json([
             'data' => VacancyResource::collection($favorites),

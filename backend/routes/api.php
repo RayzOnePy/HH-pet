@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DictionaryController;
+use App\Http\Controllers\ResponsesController;
 use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\VacancyController;
 use Illuminate\Support\Facades\Route;
@@ -68,6 +69,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/vacancies/{vacancy}', [VacancyController::class, 'destroy']);
         Route::patch('/vacancies/{vacancy}/toggle-status', [VacancyController::class, 'toggleStatus']);
         Route::patch('/vacancies/{vacancy}/restore', [VacancyController::class, 'restore']);
+
+        // Отклики
+        Route::get('/responses', [ResponsesController::class, 'employerResponses']);
+        Route::get('/responses/statistics', [ResponsesController::class, 'statistics']);
+        Route::patch('/responses/{response}/status', [ResponsesController::class, 'updateStatus']);
     });
 
     // ===== МАРШРУТЫ ДЛЯ СОИСКАТЕЛЯ =====
@@ -83,5 +89,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/favorites', [VacancyController::class, 'favorites']);
         Route::post('/favorites/{vacancy}', [VacancyController::class, 'addToFavorites']);
         Route::delete('/favorites/{vacancy}', [VacancyController::class, 'removeFromFavorites']);
+
+        // Отклики
+        Route::get('/responses', [ResponsesController::class, 'myResponses']);
+        Route::post('/responses/{vacancy}', [ResponsesController::class, 'respond']);
+        Route::delete('/responses/{response}', [ResponsesController::class, 'cancelResponse']);
+        Route::get('/responses/counts', [ResponsesController::class, 'counts']);
     });
 });

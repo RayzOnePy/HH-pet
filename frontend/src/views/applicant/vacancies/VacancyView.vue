@@ -40,7 +40,7 @@
               :disabled="respondLoading || vacancy.has_responded"
             >
               <span v-if="respondLoading" class="loading-spinner-small"></span>
-              <span v-else>{{ vacancy.has_responded ? '✓ Отклик отправлен' : '📨 Откликнуться' }}</span>
+              <span v-else>{{ vacancy.has_responded ? 'Отклик отправлен' : '📨 Откликнуться' }}</span>
             </button>
           </div>
         </div>
